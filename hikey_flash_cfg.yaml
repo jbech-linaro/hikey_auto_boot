@@ -1,0 +1,66 @@
+# List of all command needed to flash a HiKey 620 4GB device
+flash_cmds:
+        - cmd: cd /mnt/sshd/devel/optee_projects/hikey/build
+          exp: ""
+          timeout: 2
+
+        - cmd: ls hikey.mk
+          exp: hikey.mk
+          timeout: 2
+
+        - cmd: make recovery
+          exp: Press enter to continue
+          timeout: 2
+
+        - cmd: ""
+          exp: 1. Connect USB OTG cable, the micro USB cable \(press enter\)
+          timeout: 2
+
+        - cmd: ""
+          exp: 2. Connect HiKey to power up \(press enter\)
+          timeout: 2
+
+        - cmd: ""
+          exp: "Then press enter to continue flashing"
+          timeout: 60
+
+        - cmd: ""
+          exp: "sending 'ptable'"
+          timeout: 3
+
+        - cmd: ""
+          exp: "writing 'ptable'..."
+          timeout: 3
+
+        - cmd: ""
+          exp: "sending 'fastboot'..."
+          timeout: 3
+
+        - cmd: ""
+          exp: "writing 'fastboot'..."
+          timeout: 3
+
+        - cmd: ""
+          exp: "sending 'nvme'"
+          timeout: 3
+
+        - cmd: ""
+          exp: "writing 'nvme'..."
+          timeout: 3
+
+        - cmd: ""
+          exp: "sending 'boot'"
+          timeout: 5
+
+        - cmd: ""
+          exp: "writing 'boot'..."
+          timeout: 30
+
+        - cmd: ""
+          exp: "finished. total time:"
+          timeout: 15
+
+#xtest_cmds:
+#        - cmd: None
+#          exp: NOTICE:  Booting Trusted Firmware
+#          timeout: 5
