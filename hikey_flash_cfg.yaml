@@ -60,7 +60,19 @@ flash_cmds:
           exp: "finished. total time:"
           timeout: 15
 
-#xtest_cmds:
-#        - cmd: None
-#          exp: NOTICE:  Booting Trusted Firmware
-#          timeout: 5
+xtest_cmds:
+        - cmd:
+          exp: Starting tee-supplicant...
+          timeout: 60
+
+        - cmd:
+          exp: Please press Enter to activate this console.
+          timeout: 10
+
+        - cmd: ""
+          exp: root@HiKey:/
+          timeout: 10
+
+        - cmd: xtest
+          exp: test cases of which 0 failed
+          timeout: 1200
