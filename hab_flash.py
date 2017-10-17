@@ -5,6 +5,7 @@ from argparse import ArgumentParser
 
 import pexpect
 import serial
+import subprocess
 import sys
 import time
 import yaml
@@ -52,12 +53,14 @@ class Relay():
         if gargs.v:
             print("Turning on %s-relay (r: %d)" % (self.name, self.relay_number))
             print("cmd: %s on %d" % (RELAY_BINARY, self.relay_number))
+        subprocess.call([RELAY_BINARY, "on", str(self.relay_number)])
 
     def turn_off(self):
         global gargs
         if gargs.v:
             print("Turning off %s-relay (r: %d)" % (self.name, self.relay_number))
             print("cmd: %s off %d" % (RELAY_BINARY, self.relay_number))
+        subprocess.call([RELAY_BINARY, "off", str(self.relay_number)])
 
 
 class PowerRelay(Relay):
@@ -109,14 +112,14 @@ class HiKeyAutoBoard():
 
     def power_cycle(self):
         self.power_off()
-        time.sleep(0.5)
+        time.sleep(0.8)
         self.power_on()
 
     def enable_recovery_mode(self):
         """ This will power cycle the device and go into recovery mode. """
         self.power_off()
         self.rr.enable()
-        time.sleep(0.5)
+        time.sleep(1.0)
         self.power_on()
 
     def disable_recovery_mode(self):
@@ -126,6 +129,7 @@ class HiKeyAutoBoard():
 
     def flash(self, yaml_file):
         self.enable_recovery_mode()
+        time.sleep(5)
 
         # Open the yaml file containing all the flash commands etc.
         with open(yaml_file, 'r') as yml:
@@ -160,13 +164,13 @@ def main(argv):
     gargs = parser.parse_args()
 
     hab = HiKeyAutoBoard()
-    hab.power_cycle()
 
     flash_config = "hikey_flash_cfg.yaml"
     if gargs.config:
         flash_config = gargs.config
 
     hab.flash(flash_config)
+    hab.power_cycle()
 
 if __name__ == "__main__":
     main(sys.argv)
