@@ -4,6 +4,7 @@ import time
 # Local import
 from dbg import pr
 import gitcmd
+import hab_builder
 
 # The jobs consist of a dictionary that contains the actual jobs and the
 # job_queue (a list) it self is a simple queue where we only keep the id's to
@@ -32,13 +33,12 @@ class Job():
 
 def run_job():
     global job_queue
-    pr("running a job in a thread")
+    pr("Start listening for jobs!\n")
     while True:
         time.sleep(3)
         if job_queue:
-            pr(".")
             j = job_queue.pop(0)
-            pr(jobs[j])
+            hab_builder.build(jobs[j])
 
 def initialize_main_thread():
     global main_thread
