@@ -98,6 +98,8 @@ class HiKeyAutoBoard():
         self.rr.disable()
 
     def flash(self, yaml_file):
+        """ Function that puts HiKey into recover mode and then flash all boot
+        binaries. """
         self.enable_recovery_mode()
         time.sleep(5)
 
@@ -122,7 +124,9 @@ class HiKeyAutoBoard():
 
         self.disable_recovery_mode()
 
+
     def run_test(self, yaml_file):
+        """ Function to run boot up and run xtest. """
         # Open the yaml file containing all the flash commands etc.
         with open(yaml_file, 'r') as yml:
             yml_config = yaml.load(yml)
@@ -147,3 +151,24 @@ class HiKeyAutoBoard():
 
         print("xtest done!")
         self.power_off()
+
+
+    def build(self, yaml_file):
+        """ Function that setup (repo) and build OP-TEE. """
+        with open(yaml_file, 'r') as yml:
+            yml_config = yaml.load(yml)
+        yml_iter = yml_config['build_cmds']
+
+        child = pexpect.spawn("/bin/bash")
+        f = open('build.log', 'w')
+        child.logfile = f
+
+        print("Building ...")
+
+        for i in yml_iter:
+            if cfg.args.v:
+                print("cmd: %s, exp: %s (timeout %d)" % (i['cmd'], i['exp'], i['timeout']))
+            child.sendline(i['cmd'])
+            child.expect(i['exp'], timeout=i['timeout'])
+
+        print("Done building!")

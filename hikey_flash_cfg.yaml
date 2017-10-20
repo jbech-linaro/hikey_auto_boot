@@ -1,6 +1,6 @@
 # List of all command needed to flash a HiKey 620 4GB device
 flash_cmds:
-        - cmd: cd /mnt/sshd/devel/optee_projects/hikey/build
+        - cmd: cd /mnt/sshd/hab/hikey/build
           exp: ""
           timeout: 2
 
@@ -75,4 +75,14 @@ xtest_cmds:
 
         - cmd: xtest
           exp: test cases of which 0 failed
+          timeout: 1200
+
+build_cmds:
+        # TODO: Preferably we should have all the necessary commands for build
+        # here, just as for flash and xtest above. However I had issues with
+        # pexpect after running repo sync. So for now I doing all repo setup and
+        # building from this shell script instead. It works, but a bit ugly and
+        # not how it was intended to work.
+        - cmd: ./init_repo.sh
+          exp: Done building HiKey
           timeout: 1200
