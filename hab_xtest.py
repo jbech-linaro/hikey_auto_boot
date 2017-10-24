@@ -27,7 +27,7 @@ def get_parser():
 
     parser.add_argument('-c', '--config', required=False, action="store", \
             default=None, \
-            help='hab config file to use [default: <hikey_flash_cfg.yaml>]')
+            help='hab config file to use [default: <hikey_job_cfg.yaml>]')
 
     return parser
 
@@ -42,7 +42,7 @@ def main(argv):
 
     h = hab.HiKeyAutoBoard()
 
-    flash_config = "hikey_flash_cfg.yaml"
+    flash_config = "hikey_job_cfg.yaml"
     if cfg.args.config:
         flash_config = cfg.args.config
 

@@ -56,7 +56,7 @@ def main(argv):
 
     h = hab.HiKeyAutoBoard()
 
-    build_config = "hikey_flash_cfg.yaml"
+    build_config = "hikey_job_cfg.yaml"
     if cfg.args.config:
         build_config = cfg.args.config
 
