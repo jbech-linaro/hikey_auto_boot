@@ -80,9 +80,9 @@ xtest_cmds:
 build_cmds:
         # TODO: Preferably we should have all the necessary commands for build
         # here, just as for flash and xtest above. However I had issues with
-        # pexpect after running repo sync. So for now I doing all repo setup and
-        # building from this shell script instead. It works, but a bit ugly and
-        # not how it was intended to work.
-        - cmd: ./init_repo.sh
+        # pexpect after running repo sync. So for now I'm doing all repo setup
+        # and building from this shell script instead. It works, but a bit ugly
+        # and not how it was intended to be done from the beginning.
+        - cmd: ./init_repo_and_build.sh
           exp: Done building HiKey
           timeout: 1200
