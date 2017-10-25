@@ -112,7 +112,7 @@ class HiKeyAutoBoard():
         self.rr.disable()
 
 
-    def build(self, yaml_file):
+    def build(self, yaml_file, url=None, revision=None, name=None):
         """ Function that setup (repo) and build OP-TEE. """
         with open(yaml_file, 'r') as yml:
             yml_config = yaml.load(yml)
@@ -127,7 +127,15 @@ class HiKeyAutoBoard():
         for i in yml_iter:
             if cfg.args is not None and cfg.args.v:
                 print("cmd: %s, exp: %s (timeout %d)" % (i['cmd'], i['exp'], i['timeout']))
-            child.sendline(i['cmd'])
+            # TODO: Fix this when _not_ using a shell script for building, this
+            # is an ugly hardcoded hack.
+            print("cmd %s" % i['cmd'])
+            if i['cmd'] == "./init_repo_and_build.sh":
+                cmd = "%s %s %s %s" % (i['cmd'], url, revision, name)
+                print("New cmd: %s" % cmd)
+                child.sendline(cmd)
+            else:
+                child.sendline(i['cmd'])
             child.expect(i['exp'], timeout=i['timeout'])
 
         print("Done building!")

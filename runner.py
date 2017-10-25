@@ -18,14 +18,16 @@ job_queue = []
 main_thread = None
 
 class Job():
-    def __init__(self, nbr, url=None, hash_commit=None):
+    def __init__(self, nbr, url=None, hash_commit=None, name=None):
         self.id = nbr
+        self.name = name
         self.url = url
         self.hash = hash_commit
         self.repo_init = None
 
     def __str__(self):
         s = "id:        %s\n" % self.id
+        s += "name:      %s\n" % self.name
         s += "URL:       %s\n" % self.url
         s += "hash:      %s\n" % self.hash
         s += "repo init: %s" % self.repo_init
@@ -34,15 +36,27 @@ class Job():
     def add_repo_init_cmd(self, cmd):
         self.repo_init = cmd
 
+
+def get_running_time(time_start):
+    m, s = divmod(time.time() - time_start, 60)
+    h, m = divmod(m, 60)
+    return "%sh %sm %ss" % (h, m, round(s, 2))
+
+
 def run_job():
     global job_queue
     pr("Start listening for jobs!\n")
     while True:
         time.sleep(3)
         if job_queue:
+            time_start = time.time()
             j = job_queue.pop(0)
+            url = jobs[j].url
+            revision = jobs[j].hash
+            name = jobs[j].name
+
             # TODO: Args should contain git, revision, origin etc
-            if hab_builder.build() is not cfg.STATUS_OK:
+            if hab_builder.build(None, url, revision, name) is not cfg.STATUS_OK:
                 # TODO: The error message should go all the way back to GitHub
                 pr("Failed building job")
 
@@ -53,6 +67,8 @@ def run_job():
             if hab_xtest.test() is not cfg.STATUS_OK:
                 # TODO: The error message should go all the way back to GitHub
                 pr("Failed running test")
+
+            print("<-- Done (%s : %s)" % (j, get_running_time(time_start)))
 
 
 def initialize_main_thread():
@@ -76,7 +92,7 @@ def add_job(jpl):
 
     # 2. Create a job
     job_desc = "%s-%d" % (name, nbr)
-    j = Job(job_desc, url, hash_commit)
+    j = Job(job_desc, name, url, hash_commit)
     print(j)
 
     # 3. Initialize the thread picking up new jobs

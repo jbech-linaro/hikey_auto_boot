@@ -49,7 +49,7 @@ def get_parser():
 ################################################################################
 # Main function
 ################################################################################
-def build(argv=None):
+def build(argv=None, url=None, revision=None, name=None):
     print("HiKey auto builder")
 
     if (argv is not None):
@@ -62,7 +62,12 @@ def build(argv=None):
     if cfg.args is not None and cfg.args.config:
         build_config = cfg.args.config
 
-    return h.build(build_config)
+    # TODO: Just for testing debugging
+    url = "https://github.com/jbech-linaro/optee_os"
+    git_name = "optee_os"
+    rev = "aef1df91cbe6e14840bada3dfb72efe204ae495c"
+    print("Building %s %s %s" % (url, rev, git_name))
+    return h.build(build_config, url, rev, git_name)
 
 
 if __name__ == "__main__":
