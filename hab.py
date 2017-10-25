@@ -68,6 +68,14 @@ class RecoveryRelay(Relay):
     def disable(self):
         self.turn_off()
 
+def cd_check(child, folder):
+    """ Helper function to go to a folder and check that we actually entered the
+    folder. """
+    cmd = "cd %s" % folder
+    child.sendline(cmd)
+    child.sendline("pwd")
+    child.expect(folder, 3)
+
 
 class HiKeyAutoBoard():
     def __init__(self, root=None):
@@ -112,33 +120,56 @@ class HiKeyAutoBoard():
         self.rr.disable()
 
 
-    def build(self, yaml_file, url=None, revision=None, name=None):
+    def build(self, yaml_file, url=None, revision=None, git_name=None):
         """ Function that setup (repo) and build OP-TEE. """
         with open(yaml_file, 'r') as yml:
             yml_config = yaml.load(yml)
-        yml_iter = yml_config['build_cmds']
+        yml_iter = yml_config['build_init_cmds']
 
         child = pexpect.spawn("/bin/bash")
         f = open('build.log', 'w')
         child.logfile = f
 
-        print("Building ...")
+        print("Initiate build setup ...")
+        for i in yml_iter:
+            if cfg.args is not None and cfg.args.v:
+                print("cmd: %s, exp: %s (timeout %d)" % (i['cmd'], i['exp'], i['timeout']))
+            child.sendline(i['cmd'])
+            child.expect(i['exp'], timeout=i['timeout'])
+
+
+        print("Intermedia pre-build step ...")
+        folder = "%s/%s" % (cfg.source, git_name)
+        cd_check(child, folder)
+        
+        cmd = "git remote add pr_committer %s" % url
+        child.sendline(cmd)
+        r = child.expect(["", "fatal: remote pr_creator already exists."])
+        if r == 1:
+            cmd = "git remote set-url pr_committer" % url
+
+        cmd = "git fetch pr_committer"
+        child.sendline(cmd)
+        child.expect("", 60)
+
+        cmd = "git checkout %s" % revision
+        child.sendline(cmd)
+        exp_string = "HEAD is now at %s" % revision[0:7]
+        child.expect(exp_string, 10)
+
+
+        print("Starting build ...")
+        with open(yaml_file, 'r') as yml:
+            yml_config = yaml.load(yml)
+        yml_iter = yml_config['build_cmds']
 
         for i in yml_iter:
             if cfg.args is not None and cfg.args.v:
                 print("cmd: %s, exp: %s (timeout %d)" % (i['cmd'], i['exp'], i['timeout']))
-            # TODO: Fix this when _not_ using a shell script for building, this
-            # is an ugly hardcoded hack.
-            print("cmd %s" % i['cmd'])
-            if i['cmd'] == "./init_repo_and_build.sh":
-                cmd = "%s %s %s %s" % (i['cmd'], url, revision, name)
-                print("New cmd: %s" % cmd)
-                child.sendline(cmd)
-            else:
-                child.sendline(i['cmd'])
+            child.sendline(i['cmd'])
             child.expect(i['exp'], timeout=i['timeout'])
 
-        print("Done building!")
+        print("Build step complete!")
         return cfg.STATUS_OK
 
 

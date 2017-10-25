@@ -77,12 +77,25 @@ xtest_cmds:
           exp: test cases of which 0 failed
           timeout: 1200
 
-build_cmds:
+build_init_cmds:
         # TODO: Preferably we should have all the necessary commands for build
         # here, just as for flash and xtest above. However I had issues with
         # pexpect after running repo sync. So for now I'm doing all repo setup
         # and building from this shell script instead. It works, but a bit ugly
         # and not how it was intended to be done from the beginning.
-        - cmd: ./init_repo_and_build.sh
-          exp: Done building HiKey
+        - cmd: /home/jbech/devel/hikey_auto_boot/init_repo.sh
+          exp: Done setting up HiKey project
+          timeout: 120
+
+build_cmds:
+        - cmd: cd /mnt/sshd/hab/hikey/build
+          exp: ""
+          timeout: 2
+
+        - cmd: ln -sf hikey.mk Makefile
+          exp: ""
+          timeout: 2
+
+        - cmd: /home/jbech/devel/hikey_auto_boot/build.sh
+          exp: [ "Done building HiKey", "Failed building HiKey" ]
           timeout: 1200
