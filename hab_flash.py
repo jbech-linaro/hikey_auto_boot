@@ -36,20 +36,23 @@ def get_parser():
 ################################################################################
 # Main function
 ################################################################################
-def main(argv):
+def flash(argv=None):
     print("HiKey auto flasher")
+    status = cfg.STATUS_FAIL
 
-    parser = get_parser()
-    cfg.args = parser.parse_args()
+    if (argv is not None):
+        parser = get_parser()
+        cfg.args = parser.parse_args()
 
     h = hab.HiKeyAutoBoard()
 
     flash_config = "hikey_job_cfg.yaml"
-    if cfg.args.config:
+    if cfg.args is not None and cfg.args.config:
         flash_config = cfg.args.config
 
-    h.flash(flash_config)
+    status = h.flash(flash_config)
     h.power_cycle()
+    return status
 
 if __name__ == "__main__":
-    main(sys.argv)
+    flash(sys.argv)

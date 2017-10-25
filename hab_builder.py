@@ -16,11 +16,13 @@ def get_running_time(time_start):
     h, m = divmod(m, 60)
     return "%sh %sm %ss" % (h, m, round(s, 2))
 
-def build(job):
+def old_build(job):
     pr("--> Building job: %s:" % job.id)
     time_start = time.time()
     time.sleep(random.randint(3, 15))
     pr("<-- Done (%s : %s)" % (job.id, get_running_time(time_start)))
+    # TODO: Figure out how to catch timeout/errors from pyexpect
+    return cfg.STATUS_OK
 
 ################################################################################
 # Argument parser
@@ -44,23 +46,24 @@ def get_parser():
 
     return parser
 
-
 ################################################################################
 # Main function
 ################################################################################
-def main(argv):
+def build(argv=None):
     print("HiKey auto builder")
 
-    parser = get_parser()
-    cfg.args = parser.parse_args()
+    if (argv is not None):
+        parser = get_parser()
+        cfg.args = parser.parse_args()
 
     h = hab.HiKeyAutoBoard()
 
     build_config = "hikey_job_cfg.yaml"
-    if cfg.args.config:
+    if cfg.args is not None and cfg.args.config:
         build_config = cfg.args.config
 
-    h.build(build_config)
+    return h.build(build_config)
+
 
 if __name__ == "__main__":
-    main(sys.argv)
+    build(sys.argv)

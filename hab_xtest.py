@@ -34,19 +34,21 @@ def get_parser():
 ################################################################################
 # Main function
 ################################################################################
-def main(argv):
+def test(argv=None):
     print("HiKey auto OP-TEE xtest")
 
-    parser = get_parser()
-    cfg.args = parser.parse_args()
+    if (argv is not None):
+        parser = get_parser()
+        cfg.args = parser.parse_args()
 
     h = hab.HiKeyAutoBoard()
 
     flash_config = "hikey_job_cfg.yaml"
-    if cfg.args.config:
+    if cfg.args is not None and cfg.args.config:
         flash_config = cfg.args.config
 
     h.run_test(flash_config)
+    return cfg.STATUS_OK
 
 if __name__ == "__main__":
-    main(sys.argv)
+    test(sys.argv)

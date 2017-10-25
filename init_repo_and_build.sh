@@ -8,7 +8,7 @@ mkdir -p $SOURCE
 cd $SOURCE
 source ~/bin/init_python2
 #repo init -u https://github.com/OP-TEE/manifest.git -m hikey.xml --reference $REFERENCE
-repo forall -c 'echo Cleaning ... $REPO_PATH && git clean -xdf && git checkout -f'
+#repo forall -c 'echo Cleaning ... $REPO_PATH && git clean -xdf && git checkout -f'
 #repo sync -j3 -d
 
 ln -sf $REFERENCE/toolchains $SOURCE/

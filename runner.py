@@ -3,8 +3,11 @@ import time
 
 # Local import
 from dbg import pr
+import cfg
 import gitcmd
 import hab_builder
+import hab_flash
+import hab_xtest
 
 # The jobs consist of a dictionary that contains the actual jobs and the
 # job_queue (a list) it self is a simple queue where we only keep the id's to
@@ -38,7 +41,19 @@ def run_job():
         time.sleep(3)
         if job_queue:
             j = job_queue.pop(0)
-            hab_builder.build(jobs[j])
+            # TODO: Args should contain git, revision, origin etc
+            if hab_builder.build() is not cfg.STATUS_OK:
+                # TODO: The error message should go all the way back to GitHub
+                pr("Failed building job")
+
+            if hab_flash.flash() is not cfg.STATUS_OK:
+                # TODO: The error message should go all the way back to GitHub
+                pr("Failed flashing the device")
+
+            if hab_xtest.test() is not cfg.STATUS_OK:
+                # TODO: The error message should go all the way back to GitHub
+                pr("Failed running test")
+
 
 def initialize_main_thread():
     global main_thread
@@ -64,9 +79,10 @@ def add_job(jpl):
     j = Job(job_desc, url, hash_commit)
     print(j)
 
-    # 3. Check if there already is a job
+    # 3. Initialize the thread picking up new jobs
     initialize_main_thread()
 
+    # 4. Check if there already is a job
     if j.id in job_queue:
         pr("Job already exist")
         pr(job_queue)

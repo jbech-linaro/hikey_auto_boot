@@ -56,7 +56,5 @@ def payload():
         response = do_pull_request(payload)
     return 'Got payload'
 
-
-
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
