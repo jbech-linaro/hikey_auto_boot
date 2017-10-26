@@ -98,5 +98,5 @@ build_cmds:
 
         - cmd: /home/jbech/devel/hikey_auto_boot/build.sh
           exp: [ "Done building HiKey", "Failed building HiKey" ]
-          retval: 1 # This indicates where the errors starts in the array above
+          error_pos: 1 # This indicates where the errors starts in the array above
           timeout: 1200
