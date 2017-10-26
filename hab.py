@@ -176,6 +176,7 @@ class HiKeyAutoBoard():
             else:
                 e.append(i['exp'])
             print(e)
+
             # We subtract by one since we have added the timeout in the expected
             # array.
             retval = child.expect(e, timeout=i['timeout']) - 1

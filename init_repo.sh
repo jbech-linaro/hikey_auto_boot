@@ -11,13 +11,13 @@ if [ "$SOURCE" == "" ] || [ "$SOURCE" == "/" ]; then
 	exit 1
 fi
 
-#rm -rf $SOURCE
+rm -rf $SOURCE
 mkdir -p $SOURCE
 cd $SOURCE
 
 repo init -u https://github.com/OP-TEE/manifest.git -m hikey.xml --reference $REFERENCE
 repo forall -c 'echo Cleaning ... $REPO_PATH && git clean -xdf && git checkout -f'
-#repo sync -j3 -d
+repo sync -j3 -d
 
 ln -sf $REFERENCE/toolchains $SOURCE/
 
