@@ -167,7 +167,15 @@ class HiKeyAutoBoard():
             if cfg.args is not None and cfg.args.v:
                 print("cmd: %s, exp: %s (timeout %d)" % (i['cmd'], i['exp'], i['timeout']))
             child.sendline(i['cmd'])
-            child.expect(i['exp'], timeout=i['timeout'])
+            retval = child.expect(i['exp'], timeout=i['timeout'])
+            print("Retval %d" % retval)
+            try:
+                if retval >= i['retval']:
+                    print("Returning STATUS_FAIL")
+                    return cfg.STATUS_FAIL
+            except KeyError:
+                # retval not existing ...
+                pass
 
         print("Build step complete!")
         return cfg.STATUS_OK

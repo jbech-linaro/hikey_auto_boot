@@ -24,6 +24,9 @@ class Job():
         self.url = url
         self.hash = hash_commit
         self.repo_init = None
+        self.ok = True
+        self.running = False
+        self.done = False
 
     def __str__(self):
         s = "id:        %s\n" % self.id
@@ -51,24 +54,28 @@ def run_job():
         if job_queue:
             time_start = time.time()
             j = job_queue.pop(0)
+            jobs[j].running = True
             url = jobs[j].url
             revision = jobs[j].hash
             name = jobs[j].name
 
-            # TODO: Args should contain git, revision, origin etc
             if hab_builder.build(None, url, revision, name) is not cfg.STATUS_OK:
                 # TODO: The error message should go all the way back to GitHub
                 pr("Failed building job")
+                jobs[j].ok = False
 
-            if hab_flash.flash() is not cfg.STATUS_OK:
+            if jobs[j].ok and hab_flash.flash() is not cfg.STATUS_OK:
                 # TODO: The error message should go all the way back to GitHub
                 pr("Failed flashing the device")
+                jobs[j].ok = False
 
-            if hab_xtest.test() is not cfg.STATUS_OK:
+            if jobs[j].ok and hab_xtest.test() is not cfg.STATUS_OK:
                 # TODO: The error message should go all the way back to GitHub
                 pr("Failed running test")
 
-            print("<-- Done (%s : %s)" % (j, get_running_time(time_start)))
+            jobs[j].done = True
+            jobs[j].running = False
+            print("Job completed (%s : %s)" % (j, get_running_time(time_start)))
 
 
 def initialize_main_thread():
