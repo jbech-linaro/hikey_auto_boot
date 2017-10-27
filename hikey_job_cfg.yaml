@@ -22,15 +22,10 @@ flash_cmds:
           exp: "sending 'ptable'"
 
         - exp: "writing 'ptable'..."
-
         - exp: "sending 'fastboot'..."
-
         - exp: "writing 'fastboot'..."
-
         - exp: "sending 'nvme'"
-
         - exp: "writing 'nvme'..."
-
         - exp: "sending 'boot'"
 
         - exp: "writing 'boot'..."
@@ -49,8 +44,9 @@ xtest_cmds:
         - cmd: ""
           exp: root@HiKey:/
 
-        - cmd: xtest
-          exp: test cases of which 0 failed
+        - cmd: xtest 100
+          exp: [ "test cases of which 0 failed", "root@HiKey:/" ] # Prompt means error
+          error_pos: 1 # This indicates where the errors starts in the array above
           timeout: 1200
 
        # Start running the SDP tests
