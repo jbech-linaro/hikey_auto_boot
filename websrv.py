@@ -24,11 +24,24 @@ def do_pull_request(jpl):
 def verify_hmac_hash(data, signature):
     github_secret = os.environ['GITHUB_SECRET']
     mac = hmac.new(github_secret, msg=data, digestmod=hashlib.sha1)
-    return hmac.compare_digest('sha1=' + mac.hexdigest(), signature)
+
+    # Need to convert this to unicode, since hmac.compare_digest expect either a
+    # unicode string or a byte array
+    hexdigest = unicode("sha1=" + mac.hexdigest(), "utf-8")
+    return hmac.compare_digest(hexdigest, signature)
+
+
+def dump_json_blob_to_file(request, filename="last_blob.json"):
+    """ Debug function to dump the last json blob to file """
+    f = open(filename, 'w')
+    payload = request.get_json()
+    json.dump(payload, f, indent=4)
+    f.close()
+
 
 @app.route('/')
 def hello_world():
-    return 'Hello World2!'
+    return 'OP-TEE automatic tester!'
 
 @app.route('/job/<git>/<int:job_id>')
 def show_post(git, job_id):
@@ -43,17 +56,15 @@ def show_post(git, job_id):
 def payload():
     signature = request.headers.get('X-Hub-Signature')
     data = request.data
-    #f = open('pull_request.json', 'w')
-    #payload = request.get_json()
-    #json.dump(payload, f, indent=4)
-    #f.close()
-    return 'foo'
-    #if verify_hmac_hash(data, signature) is not True:
-    #    return jsonify({'msg': 'wrong signature'})
+    dump_json_blob_to_file(request)
+
+    # Check the signature to ensure that the message comes from GitHub
+    if verify_hmac_hash(data, signature) is not True:
+        return jsonify({'msg': 'wrong signature'})
 
     if request.headers.get('X-GitHub-Event') == "pull_request":
         payload = request.get_json()
-        response = do_pull_request(payload)
+        response = runner.add_job(payload)
     return 'Got payload'
 
 if __name__ == '__main__':
