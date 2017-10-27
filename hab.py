@@ -77,6 +77,32 @@ def cd_check(child, folder):
     child.expect(folder, 3)
 
 
+def do_pexpect(child, cmd=None, exp=None, timeout=3, error_pos=1):
+    if cmd is not None:
+        print("Sending: %s" % cmd)
+        child.sendline(cmd)
+
+    if exp is not None:
+        e = []
+
+        # In the yaml file there could be standalone lines or there could be
+        # a list if expected output.
+        if isinstance(exp, list):
+            e = exp + [pexpect.TIMEOUT]
+        else:
+            e.append(exp)
+            e.append(pexpect.TIMEOUT)
+
+        print("Expecting: {}".format(e))
+        r = child.expect(e, timeout)
+        print("Got: {} (error at {})".format(r, error_pos))
+        if r >= error_pos:
+            print("Returning STATUS_FAIL")
+            return False
+
+        return True
+
+
 class HiKeyAutoBoard():
     def __init__(self, root=None):
         self.pr = PowerRelay()
@@ -164,30 +190,12 @@ class HiKeyAutoBoard():
         yml_iter = yml_config['build_cmds']
 
         for i in yml_iter:
-            if cfg.args is not None and cfg.args.v:
-                print("cmd: %s, exp: %s (timeout %d)" % (i['cmd'], i['exp'], i['timeout']))
-            child.sendline(i['cmd'])
-            e = [pexpect.TIMEOUT]
+            c = i.get('cmd', None)
+            e = i.get('exp', None)
+            t = i.get('timeout', 3)
 
-            # In the yaml file there could be standalone lines of there could be
-            # a list if expected output.
-            if isinstance(i['exp'], list):
-                e = e + i['exp']
-            else:
-                e.append(i['exp'])
-            print(e)
-
-            # We subtract by one since we have added the timeout in the expected
-            # array.
-            retval = child.expect(e, timeout=i['timeout']) - 1
-            print("Retval %d" % retval)
-            try:
-                if retval >= i['error_pos']:
-                    print("Returning STATUS_FAIL")
-                    return cfg.STATUS_FAIL
-            except KeyError:
-                # error_pos not existing ...
-                pass
+            if do_pexpect(child, c, e, t) == False:
+                return cfg.STATUS_FAIL
 
         print("Build step complete!")
         return cfg.STATUS_OK
