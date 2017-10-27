@@ -1,3 +1,4 @@
 *.log
 *.pyc
 *.swp
+last_blob.json
