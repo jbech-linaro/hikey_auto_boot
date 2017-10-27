@@ -1,3 +1,5 @@
+import os
+import requests
 import threading
 import time
 
@@ -18,10 +20,11 @@ job_queue = []
 main_thread = None
 
 class Job():
-    def __init__(self, nbr, url=None, hash_commit=None, name=None):
+    def __init__(self, nbr, json_blob=None, url=None, hash_commit=None, name=None):
         self.id = nbr
         self.name = name
         self.url = url
+        self.json_blob = json_blob
         self.hash = hash_commit
         self.repo_init = None
         self.ok = True
@@ -44,6 +47,26 @@ def get_running_time(time_start):
     m, s = divmod(time.time() - time_start, 60)
     h, m = divmod(m, 60)
     return "%sh %sm %ss" % (h, m, round(s, 2))
+
+
+def update_state(state, statuses_url, job_id):
+    request = { "description": "Waiting for result!",
+                "context": "OP-TEE HiKey auto builder"
+                }
+    request['state'] = state
+    request['target_url'] = "http://jyx.mooo.com/" + job_id
+
+    print(request)
+
+    token = "token {}".format(os.environ['GITHUB_TOKEN'])
+
+    headers = {'content-type': 'application/json',
+            'Authorization': token }
+
+    print(headers)
+
+    res = requests.post(statuses_url, json=request, headers=headers)
+    pr("response from server: {}".format(res.text))
 
 
 def run_job():
@@ -75,6 +98,11 @@ def run_job():
 
             jobs[j].done = True
             jobs[j].running = False
+
+            if jobs[j].ok:
+                update_state("success", jobs[j].json_blob['pull_request']['statuses_url'], jobs[j].id)
+            else:
+                update_state("error", jobs[j].json_blob['pull_request']['statuses_url'], jobs[j].id)
             print("Job completed (%s : %s)" % (j, get_running_time(time_start)))
 
 
@@ -88,6 +116,7 @@ def initialize_main_thread():
     main_thread.setDaemon(True)
     main_thread.start()
 
+
 def add_job(jpl):
     global job_queue
 
@@ -99,13 +128,14 @@ def add_job(jpl):
 
     # 2. Create a job
     job_desc = "%s-%d" % (name, nbr)
-    j = Job(job_desc, name, url, hash_commit)
+    j = Job(job_desc, jpl, name, url, hash_commit)
     print(j)
 
     # 3. Initialize the thread picking up new jobs
     initialize_main_thread()
 
     # 4. Check if there already is a job
+    update_state("pending", jpl['pull_request']['statuses_url'], j.id)
     if j.id in job_queue:
         pr("Job already exist")
         pr(job_queue)

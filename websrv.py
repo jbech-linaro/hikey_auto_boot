@@ -4,7 +4,6 @@ import json
 import hmac
 import hashlib
 import os
-import requests
 import sys
 
 # Local imports
@@ -40,25 +39,6 @@ def dump_json_blob_to_file(request, filename="last_blob.json"):
     f.close()
 
 
-def update_state(state, statuses_url, target_url=None):
-    request = { "description": "Waiting for result!",
-                "context": "OP-TEE HiKey auto builder"
-                }
-    request['state'] = state
-    request['target_url'] = "http://jyx.mooo.com/"
-
-    token = "token {}".format(os.environ['GITHUB_TOKEN'])
-    headers = {'content-type': 'application/json',
-            'Authorization': token }
-
-    res = requests.post(statuses_url, json=request, headers=headers)
-    pr("response from server: {}".format(res.text))
-
-#@app.after_request
-#def after_request(response):
-#    response.headers.add('Authorization', 'token f956a22e2e3e57383e4a14ff99e265958ef6ba74')
-#    return response
-
 @app.route('/')
 def hello_world():
     return 'OP-TEE automatic tester!'
@@ -85,7 +65,6 @@ def payload():
     if request.headers.get('X-GitHub-Event') == "pull_request":
         payload = request.get_json()
         runner.add_job(payload)
-        update_state("pending", payload['pull_request']['statuses_url'])
     return 'OK'
 
 
