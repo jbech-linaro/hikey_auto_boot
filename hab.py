@@ -77,7 +77,7 @@ def cd_check(child, folder):
     child.expect(folder, 3)
 
 
-def do_pexpect(child, cmd=None, exp=None, timeout=3, error_pos=1):
+def do_pexpect(child, cmd=None, exp=None, timeout=5, error_pos=1):
     if cmd is not None:
         print("Sending: %s" % cmd)
         child.sendline(cmd)
@@ -93,7 +93,7 @@ def do_pexpect(child, cmd=None, exp=None, timeout=3, error_pos=1):
             e.append(exp)
             e.append(pexpect.TIMEOUT)
 
-        print("Expecting: {}".format(e))
+        print("Expecting: {} (timeout={}, error={})".format(e, timeout, error_pos))
         r = child.expect(e, timeout)
         print("Got: {} (error at {})".format(r, error_pos))
         if r >= error_pos:
@@ -158,11 +158,12 @@ class HiKeyAutoBoard():
 
         print("Initiate build setup ...")
         for i in yml_iter:
-            if cfg.args is not None and cfg.args.v:
-                print("cmd: %s, exp: %s (timeout %d)" % (i['cmd'], i['exp'], i['timeout']))
-            child.sendline(i['cmd'])
-            child.expect(i['exp'], timeout=i['timeout'])
+            c = i.get('cmd', None)
+            e = i.get('exp', None)
+            t = i.get('timeout', 5)
 
+            if do_pexpect(child, c, e, t) == False:
+                return cfg.STATUS_FAIL
 
         print("Intermedia pre-build step ...")
         folder = "%s/%s" % (cfg.source, git_name)
@@ -183,7 +184,6 @@ class HiKeyAutoBoard():
         exp_string = "HEAD is now at %s" % revision[0:7]
         child.expect(exp_string, 10)
 
-
         print("Starting build ...")
         with open(yaml_file, 'r') as yml:
             yml_config = yaml.load(yml)
@@ -192,7 +192,7 @@ class HiKeyAutoBoard():
         for i in yml_iter:
             c = i.get('cmd', None)
             e = i.get('exp', None)
-            t = i.get('timeout', 3)
+            t = i.get('timeout', 5)
 
             if do_pexpect(child, c, e, t) == False:
                 return cfg.STATUS_FAIL
@@ -219,13 +219,15 @@ class HiKeyAutoBoard():
         print("Flashing the device")
 
         for i in yml_iter:
-            if cfg.args is not None and cfg.args.v:
-                print("cmd: %s, exp: %s (timeout %d)" % (i['cmd'], i['exp'], i['timeout']))
-            child.sendline(i['cmd'])
-            child.expect(i['exp'], timeout=i['timeout'])
+            c = i.get('cmd', None)
+            e = i.get('exp', None)
+            t = i.get('timeout', 5)
+
+            if do_pexpect(child, c, e, t) == False:
+                self.disable_recovery_mode()
+                return cfg.STATUS_FAIL
 
         print("Done flashing!")
-
         self.disable_recovery_mode()
         return cfg.STATUS_OK
 
@@ -248,11 +250,13 @@ class HiKeyAutoBoard():
         self.power_cycle()
 
         for i in yml_iter:
-            if cfg.args is not None and cfg.args.v:
-                print("cmd: %s, exp: %s (timeout %d)" % (i['cmd'], i['exp'], i['timeout']))
-            if i['cmd'] is not None:
-                child.sendline(i['cmd'])
-            child.expect(i['exp'], timeout=i['timeout'])
+            c = i.get('cmd', None)
+            e = i.get('exp', None)
+            t = i.get('timeout', 5)
+
+            if do_pexpect(child, c, e, t) == False:
+                self.power_off()
+                return cfg.STATUS_FAIL
 
         print("xtest done!")
         self.power_off()

@@ -1,77 +1,53 @@
 # List of all command needed to flash a HiKey 620 4GB device
 flash_cmds:
         - cmd: cd /mnt/sshd/hab/hikey/build
-          exp: ""
-          timeout: 2
 
         - cmd: ls hikey.mk
           exp: hikey.mk
-          timeout: 2
 
         - cmd: make recovery
-          exp: Press enter to continue
-          timeout: 2
+          exp: "Press enter to continue"
+          timeout: 10
 
-        - cmd: ""
+        - cmd: "" # Enter from previous expect
           exp: 1. Connect USB OTG cable, the micro USB cable \(press enter\)
-          timeout: 2
 
-        - cmd: ""
+        - cmd: "" # Enter from previous expect
           exp: 2. Connect HiKey to power up \(press enter\)
-          timeout: 2
 
-        - cmd: ""
+        - cmd: "" # Enter from previous expect
           exp: "Then press enter to continue flashing"
-          timeout: 60
 
-        - cmd: ""
+        - cmd: "" # Enter from previous expect
           exp: "sending 'ptable'"
-          timeout: 3
 
-        - cmd: ""
-          exp: "writing 'ptable'..."
-          timeout: 3
+        - exp: "writing 'ptable'..."
 
-        - cmd: ""
-          exp: "sending 'fastboot'..."
-          timeout: 3
+        - exp: "sending 'fastboot'..."
 
-        - cmd: ""
-          exp: "writing 'fastboot'..."
-          timeout: 3
+        - exp: "writing 'fastboot'..."
 
-        - cmd: ""
-          exp: "sending 'nvme'"
-          timeout: 3
+        - exp: "sending 'nvme'"
 
-        - cmd: ""
-          exp: "writing 'nvme'..."
-          timeout: 3
+        - exp: "writing 'nvme'..."
 
-        - cmd: ""
-          exp: "sending 'boot'"
-          timeout: 5
+        - exp: "sending 'boot'"
 
-        - cmd: ""
-          exp: "writing 'boot'..."
+        - exp: "writing 'boot'..."
           timeout: 30
 
-        - cmd: ""
-          exp: "finished. total time:"
-          timeout: 15
+        - exp: "finished. total time:"
+          timeout: 10
 
 xtest_cmds:
-        - cmd:
-          exp: Starting tee-supplicant...
+        - exp: Starting tee-supplicant...
           timeout: 60
 
-        - cmd:
-          exp: Please press Enter to activate this console.
+        - exp: Please press Enter to activate this console.
           timeout: 10
 
         - cmd: ""
           exp: root@HiKey:/
-          timeout: 10
 
         - cmd: xtest
           exp: test cases of which 0 failed
@@ -124,12 +100,8 @@ build_init_cmds:
 
 build_cmds:
         - cmd: cd /mnt/sshd/hab/hikey/build
-          exp: ""
-          timeout: 2
 
         - cmd: ln -sf hikey.mk Makefile
-          exp: ""
-          timeout: 2
 
         - cmd: /home/jbech/devel/hikey_auto_boot/build.sh
           exp: [ "Done building HiKey", "Failed building HiKey" ]
