@@ -27,12 +27,10 @@ flash_cmds:
         - exp: "sending 'nvme'"
         - exp: "writing 'nvme'..."
         - exp: "sending 'boot'"
-
         - exp: "writing 'boot'..."
-          timeout: 30
 
         - exp: "finished. total time:"
-          timeout: 10
+          timeout: 30
 
 xtest_cmds:
         - exp: Starting tee-supplicant...
