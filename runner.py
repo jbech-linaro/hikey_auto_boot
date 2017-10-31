@@ -76,7 +76,7 @@ def update_state(state, statuses_url, git_name, github_number, description):
     # print(headers)
 
     res = requests.post(statuses_url, json=request, headers=headers)
-    print("response from server: {}".format(res.text))
+    # print("response from server: {}".format(res.text))
 
 
 def run_job():
@@ -89,6 +89,7 @@ def run_job():
 
             # Get the build id so we can find it in the dictionary with Jobs
             bi = job_queue.pop(0)
+
             j = jobs[bi]
             j.running = True
 
@@ -97,8 +98,8 @@ def run_job():
                          "Job added to the queue")
 
             # Building ...
-            if hab_builder.build(None, j.clone_url, j.ref,
-                    j.git_name) is not cfg.STATUS_OK:
+            if hab_builder.build(None, j.clone_url, j.ref, j.git_name) \
+                    is not cfg.STATUS_OK:
                 print("Failed building job")
                 update_state("error", statuses_url, j.git_name, j.github_nbr,
                              "Failed building the solution")

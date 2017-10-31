@@ -1,4 +1,5 @@
 import yaml
+import os
 import pexpect
 import serial
 import subprocess
@@ -102,6 +103,11 @@ def do_pexpect(child, cmd=None, exp=None, timeout=5, error_pos=1):
 
         return True
 
+def spawn_pexpect_child():
+    rcfile = os.environ['HOME'] + "/devel/hikey_auto_boot/.bashrc"
+    shell = "{} --rcfile {}".format("/bin/bash", rcfile)
+    return pexpect.spawn(shell)
+
 
 class HiKeyAutoBoard():
     def __init__(self, root=None):
@@ -146,13 +152,13 @@ class HiKeyAutoBoard():
         self.rr.disable()
 
 
-    def build(self, yaml_file, url=None, revision=None, git_name=None):
+    def build(self, yaml_file, clone_url=None, rev=None, git_name=None):
         """ Function that setup (repo) and build OP-TEE. """
         with open(yaml_file, 'r') as yml:
             yml_config = yaml.load(yml)
         yml_iter = yml_config['build_init_cmds']
 
-        child = pexpect.spawn("/bin/bash")
+        child = spawn_pexpect_child()
         f = open('build.log', 'w')
         child.logfile = f
 
@@ -165,24 +171,30 @@ class HiKeyAutoBoard():
             if do_pexpect(child, c, e, t) == False:
                 return cfg.STATUS_FAIL
 
-        print("Intermedia pre-build step ...")
+        print("Intermediate pre-build step ...")
         folder = "%s/%s" % (cfg.source, git_name)
         cd_check(child, folder)
         
-        cmd = "git remote add pr_committer %s" % url
-        child.sendline(cmd)
-        r = child.expect(["", "fatal: remote pr_creator already exists."])
-        if r == 1:
-            cmd = "git remote set-url pr_committer" % url
+        if clone_url is not None:
+            # Add the remote to be able to get the commit to test
+            cmd = "git remote add pr_committer %s" % clone_url
+            child.sendline(cmd)
+            r = child.expect(["", "fatal: remote pr_creator already exists.", pexpect.TIMEOUT])
+            if r == 1:
+                cmd = "git remote set-url pr_committer" % clone_url
+            elif r == 2:
+                return cfg.STATUS_FAIL
 
-        cmd = "git fetch pr_committer"
-        child.sendline(cmd)
-        child.expect("", 60)
+            cmd = "git fetch pr_committer"
+            if do_pexpect(child, cmd, None, 60) == False:
+                print("Could not fetch from {}".format(clone_url))
+                return cfg.STATUS_FAIL
 
-        cmd = "git checkout %s" % revision
-        child.sendline(cmd)
-        exp_string = "HEAD is now at %s" % revision[0:7]
-        child.expect(exp_string, 10)
+            cmd = "git checkout %s" % rev
+            exp_string = "HEAD is now at %s" % rev[0:7]
+            if do_pexpect(child, cmd, exp_string, 20) == False:
+                print("Failed to checkout {}".format(rev))
+                return cfg.STATUS_FAIL
 
         print("Starting build ...")
         with open(yaml_file, 'r') as yml:
@@ -212,7 +224,7 @@ class HiKeyAutoBoard():
             yml_config = yaml.load(yml)
         yml_iter = yml_config['flash_cmds']
 
-        child = pexpect.spawn("/bin/bash")
+        child = spawn_pexpect_child()
         f = open('flash.log', 'w')
         child.logfile = f
 
@@ -239,7 +251,7 @@ class HiKeyAutoBoard():
             yml_config = yaml.load(yml)
         yml_iter = yml_config['xtest_cmds']
 
-        child = pexpect.spawn("/bin/bash")
+        child = spawn_pexpect_child()
         f = open('xtest.log', 'w')
         child.logfile = f
 
