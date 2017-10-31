@@ -1,5 +1,7 @@
 # List of all command needed to flash a HiKey 620 4GB device
 flash_cmds:
+        - cmd: export PS1="$ "
+
         - cmd: cd /mnt/sshd/hab/hikey/build
 
         - cmd: ls hikey.mk
@@ -88,6 +90,8 @@ build_init_cmds:
         # pexpect after running repo sync. So for now I'm doing all repo setup
         # and building from this shell script instead. It works, but a bit ugly
         # and not how it was intended to be done from the beginning.
+        - cmd: export PS1="$ "
+
         - cmd: /home/jbech/devel/hikey_auto_boot/init_repo.sh
           exp: Done setting up HiKey project
           timeout: 120

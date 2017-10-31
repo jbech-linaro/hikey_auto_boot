@@ -105,13 +105,13 @@ def do_pexpect(child, cmd=None, exp=None, timeout=5, error_pos=1):
         return True
 
 def spawn_pexpect_child():
-    rcfile = os.environ['HOME'] + "/devel/hikey_auto_boot/.bashrc"
-    shell = "{} --rcfile {}".format("/bin/bash", rcfile)
-    return pexpect.spawn(shell)
+    rcfile = '--rcfile {}/.bashrc'.format(os.getcwd())
+    child = pexpect.spawn('/bin/bash', ['--rcfile', rcfile])
+    return child
 
-def terminate_child(child, git_name, github_nbr):
+def terminate_child(child, git_name, github_nbr, filename):
     child.close()
-    logger.store_logfile(git_name, github_nbr, "build.log")
+    logger.store_logfile(git_name, github_nbr, filename)
 
 
 class HiKeyAutoBoard():
@@ -175,7 +175,7 @@ class HiKeyAutoBoard():
             t = i.get('timeout', 5)
 
             if do_pexpect(child, c, e, t) == False:
-                terminate_child(child, git_name, github_nbr)
+                terminate_child(child, git_name, github_nbr, "build.log")
                 return cfg.STATUS_FAIL
 
         print("Intermediate pre-build step ...")
@@ -190,20 +190,20 @@ class HiKeyAutoBoard():
             if r == 1:
                 cmd = "git remote set-url pr_committer" % clone_url
             elif r == 2:
-                terminate_child(child, git_name, github_nbr)
+                terminate_child(child, git_name, github_nbr, "build.log")
                 return cfg.STATUS_FAIL
 
             cmd = "git fetch pr_committer"
             if do_pexpect(child, cmd, None, 60) == False:
                 print("Could not fetch from {}".format(clone_url))
-                terminate_child(child, git_name, github_nbr)
+                terminate_child(child, git_name, github_nbr, "build.log")
                 return cfg.STATUS_FAIL
 
             cmd = "git checkout %s" % rev
             exp_string = "HEAD is now at %s" % rev[0:7]
             if do_pexpect(child, cmd, exp_string, 20) == False:
                 print("Failed to checkout {}".format(rev))
-                terminate_child(child, git_name, github_nbr)
+                terminate_child(child, git_name, github_nbr, "build.log")
                 return cfg.STATUS_FAIL
 
         print("Starting build ...")
@@ -217,11 +217,11 @@ class HiKeyAutoBoard():
             t = i.get('timeout', 5)
 
             if do_pexpect(child, c, e, t) == False:
-                terminate_child(child, git_name, github_nbr)
+                terminate_child(child, git_name, github_nbr, "build.log")
                 return cfg.STATUS_FAIL
 
         print("Build step complete!")
-        terminate_child(child, git_name, github_nbr)
+        terminate_child(child, git_name, github_nbr, "build.log")
         return cfg.STATUS_OK
 
 
@@ -249,10 +249,12 @@ class HiKeyAutoBoard():
 
             if do_pexpect(child, c, e, t) == False:
                 self.disable_recovery_mode()
+                terminate_child(child, git_name, github_nbr, "flash.log")
                 return cfg.STATUS_FAIL
 
         print("Done flashing!")
         self.disable_recovery_mode()
+        terminate_child(child, git_name, github_nbr, "flash.log")
         return cfg.STATUS_OK
 
 
@@ -280,8 +282,10 @@ class HiKeyAutoBoard():
 
             if do_pexpect(child, c, e, t) == False:
                 self.power_off()
+                terminate_child(child, git_name, github_nbr, "xtest.log")
                 return cfg.STATUS_FAIL
 
         print("xtest done!")
         self.power_off()
+        terminate_child(child, git_name, github_nbr, "xtest.log")
         return cfg.STATUS_OK

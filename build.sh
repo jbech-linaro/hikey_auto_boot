@@ -1,4 +1,6 @@
 #!/bin/bash
+export PS1="$$ "
+
 cd /mnt/sshd/hab/hikey/build
 
 # This magic here is getting the return value from make and not tee ...

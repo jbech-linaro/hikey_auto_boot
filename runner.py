@@ -60,7 +60,7 @@ def get_running_time(time_start):
 def update_state(state, statuses_url, git_name, github_number, description):
     request = { "context": "OP-TEE HiKey auto builder" }
     request['state'] = state
-    request['target_url'] = "http://jyx.mooo.com/{}/{}".format(git_name, github_number)
+    request['target_url'] = "http://jyx.mooo.com:5000/{}/{}".format(git_name, github_number)
     request['description'] = description
 
     print(request)

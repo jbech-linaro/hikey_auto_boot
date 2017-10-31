@@ -1,18 +1,46 @@
 <html>
 <head>
 <style>
-	div { background-color: lightgrey; font-family: helvetica; font-size:13 ; }
-	pre, code { background-color: lightgrey; font-family: 'Consolas', 'Menlo', 'Deja Vu Sans Mono',
-		'Bitstream Vera Sans Mono', monospace;
-	font-size: 0.7em; }
+	div {
+		background-color: lightgrey;
+		font-family: helvetica;
+		font-size:13;
+	}
+
+	pre, code {
+		background-color: lightgrey;
+		font-family: 'Consolas', 'Menlo', 'Deja Vu Sans Mono', 'Bitstream Vera Sans Mono', monospace;
+		white-space: pre-wrap;       /* Since CSS 2.1 */
+		white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+		white-space: -pre-wrap;      /* Opera 4-6 */
+		white-space: -o-pre-wrap;    /* Opera 7 */
+		word-wrap: break-word;       /* Internet Explorer 5.5+ */
+		border-radius: 0 !important;
+		font-size: 0.7em;
+	}
 </style>
 <title>OP-TEE CI and test for HiKey</title>
 <body>
 {% if gn %}
-  <h1>Build job: {{ gn }} - {{ gnr }}</h1>
-  <h2>Build log</h2>
+  <h1 id="top">Build job: {{ gn }} - {{ gnr }}</h1>
+  <ul>
+	<li><a href="#build">Build log</a></li>
+	<li><a href="#flash">Flash log</a></li>
+	<li><a href="#test">Test log</a></li>
+  </ul>
+  <h2 id="build">Build log (<a href="#top">top</a>)</h2>
   <pre>
-  		{{ build_log }}
+		{{ build_log }}
+  </pre>
+
+  <h2 id="flash">Flash log (<a href="#top">top</a>)</h2>
+  <pre>
+		{{ flash_log }}
+  </pre>
+
+  <h2 id="test">Test log (<a href="#top">top</a>)</h2>
+  <pre>
+		{{ test_log }}
   </pre>
 {% endif %}
 </body>

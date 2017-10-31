@@ -49,7 +49,6 @@ def read_log(git_name, github_nbr, filename):
     with open(log_file, 'r') as f:
         log = f.read()
 
-    print(log)
     return log 
 
 
@@ -62,15 +61,14 @@ def show_post(git_name, github_nbr):
     # show the post for a build job
 
     print(git_name)
-    bl = read_log(git_name, str(github_nbr), "build.log")
+    bl = read_log(git_name, github_nbr, "build.log")
 
-    #bl += "<h2>Flash log</h2>"
-    #bl += read_log(git_name, github_nbr, "flash.log")
+    fl = read_log(git_name, github_nbr, "flash.log")
 
-    #bl += "<h2>Xtest log</h2>"
-    #bl += read_log(git_name, github_nbr, "xtest.log")
+    tl = read_log(git_name, github_nbr, "xtest.log")
 
-    return render_template('job.html', gn=git_name, gnr=github_nbr, build_log=bl)
+    return render_template('job.html', gn=git_name, gnr=github_nbr,
+            build_log=bl, flash_log=fl, test_log=tl)
 
 @app.route('/payload', methods=['POST'])
 def payload():

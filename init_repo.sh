@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+export PS1="foo $$ "
 
 # Needs to be synced between this script and build.sh
 SOURCE=/mnt/sshd/hab/hikey
