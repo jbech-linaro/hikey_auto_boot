@@ -46,8 +46,10 @@ def read_log(git_name, github_nbr, filename):
     # injection attacks.
     log_file = "{d}/{f}".format(d=log_file_dir, f=filename)
     log = ""
-    with open(log_file, 'r') as l:
-        log = l.read().replace('\n', '<br>')
+    with open(log_file, 'r') as f:
+        log = f.read()
+
+    print(log)
     return log 
 
 
@@ -59,11 +61,8 @@ def hello_world():
 def show_post(git_name, github_nbr):
     # show the post for a build job
 
-    bl = "<h1>Build job: {} {}</h1>".format(git_name, github_nbr)
-
-    bl += "<h2>Build log</h2>"
     print(git_name)
-    bl += read_log(git_name, str(github_nbr), "build.log")
+    bl = read_log(git_name, str(github_nbr), "build.log")
 
     #bl += "<h2>Flash log</h2>"
     #bl += read_log(git_name, github_nbr, "flash.log")
@@ -71,7 +70,7 @@ def show_post(git_name, github_nbr):
     #bl += "<h2>Xtest log</h2>"
     #bl += read_log(git_name, github_nbr, "xtest.log")
 
-    return bl
+    return render_template('job.html', gn=git_name, gnr=github_nbr, build_log=bl)
 
 @app.route('/payload', methods=['POST'])
 def payload():

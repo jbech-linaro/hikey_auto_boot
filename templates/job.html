@@ -1,0 +1,19 @@
+<html>
+<head>
+<style>
+	div { background-color: lightgrey; font-family: helvetica; font-size:13 ; }
+	pre, code { background-color: lightgrey; font-family: 'Consolas', 'Menlo', 'Deja Vu Sans Mono',
+		'Bitstream Vera Sans Mono', monospace;
+	font-size: 0.7em; }
+</style>
+<title>OP-TEE CI and test for HiKey</title>
+<body>
+{% if gn %}
+  <h1>Build job: {{ gn }} - {{ gnr }}</h1>
+  <h2>Build log</h2>
+  <pre>
+  		{{ build_log }}
+  </pre>
+{% endif %}
+</body>
+</html>
