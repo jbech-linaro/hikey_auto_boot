@@ -20,27 +20,35 @@ job_queue = []
 main_thread = None
 
 class Job():
-    def __init__(self, nbr, json_blob=None, url=None, hash_commit=None, name=None):
-        self.id = nbr
-        self.name = name
-        self.url = url
+    def __init__(self,
+            json_blob=None,
+            git_name="test",
+            github_nbr="9999",
+            clone_url=None,
+            ref=None):
+
         self.json_blob = json_blob
-        self.hash = hash_commit
-        self.repo_init = None
+        self.git_name = git_name
+        self.github_nbr = github_nbr
+        self.clone_url = clone_url
+        self.ref = ref
+
         self.ok = True
         self.running = False
         self.done = False
 
     def __str__(self):
-        s = "id:        %s\n" % self.id
-        s += "name:      %s\n" % self.name
-        s += "URL:       %s\n" % self.url
-        s += "hash:      %s\n" % self.hash
-        s += "repo init: %s" % self.repo_init
+        s = "name:      %s\n" % self.git_name
+        s += "github_nbr %s\n" % self.github_nbr
+        s += "clone_url: %s\n" % self.clone_url
+        s += "ref:       %s\n" % self.ref
         return s
 
-    def add_repo_init_cmd(self, cmd):
-        self.repo_init = cmd
+    def get_build_id(self):
+        """ The build id is the key for the Job dictionary and is a combination
+        of the name of the git and the pull request number. """
+        return "{}-{}".format(self.git_name, "-", self.github_nbr)
+
 
 
 def get_running_time(time_start):
@@ -49,61 +57,73 @@ def get_running_time(time_start):
     return "%sh %sm %ss" % (h, m, round(s, 2))
 
 
-def update_state(state, statuses_url, job_id):
-    request = { "description": "Waiting for result!",
-                "context": "OP-TEE HiKey auto builder"
-                }
+def update_state(state, statuses_url, git_name, github_number, description):
+    request = { "context": "OP-TEE HiKey auto builder" }
     request['state'] = state
-    request['target_url'] = "http://jyx.mooo.com/" + job_id
+    request['target_url'] = "http://jyx.mooo.com/{}/{}".format(git_name, github_number)
+    request['description'] = description
 
     print(request)
 
+    # Read the personal token (from GitHub)
     token = "token {}".format(os.environ['GITHUB_TOKEN'])
 
+    # Set the token
     headers = {'content-type': 'application/json',
             'Authorization': token }
 
-    print(headers)
+    # Note that this will print sensitive information
+    # print(headers)
 
     res = requests.post(statuses_url, json=request, headers=headers)
-    pr("response from server: {}".format(res.text))
+    print("response from server: {}".format(res.text))
 
 
 def run_job():
     global job_queue
-    pr("Start listening for jobs!\n")
+    print("Start listening for jobs!\n")
     while True:
         time.sleep(3)
         if job_queue:
             time_start = time.time()
-            j = job_queue.pop(0)
-            jobs[j].running = True
-            url = jobs[j].url
-            revision = jobs[j].hash
-            name = jobs[j].name
 
-            if hab_builder.build(None, url, revision, name) is not cfg.STATUS_OK:
-                # TODO: The error message should go all the way back to GitHub
-                pr("Failed building job")
-                jobs[j].ok = False
+            # Get the build id so we can find it in the dictionary with Jobs
+            bi = job_queue.pop(0)
+            j = jobs[bi]
+            j.running = True
 
-            if jobs[j].ok and hab_flash.flash() is not cfg.STATUS_OK:
-                # TODO: The error message should go all the way back to GitHub
-                pr("Failed flashing the device")
-                jobs[j].ok = False
+            statuses_url = j.json_blob['pull_request']['statuses_url']
+            update_state("pending", statuses_url, j.git_name, j.github_nbr,
+                         "Job added to the queue")
 
-            if jobs[j].ok and hab_xtest.test() is not cfg.STATUS_OK:
-                # TODO: The error message should go all the way back to GitHub
-                pr("Failed running test")
+            # Building ...
+            if hab_builder.build(None, j.clone_url, j.ref,
+                    j.git_name) is not cfg.STATUS_OK:
+                print("Failed building job")
+                update_state("error", statuses_url, j.git_name, j.github_nbr,
+                             "Failed building the solution")
+                j.ok = False
 
-            jobs[j].done = True
-            jobs[j].running = False
+            # Flashing ...
+            if j.ok and hab_flash.flash() is not cfg.STATUS_OK:
+                print("Failed flashing the device")
+                update_state("error", statuses_url, j.git_name, j.github_nbr,
+                             "Failed flashing the device(s)")
+                j.ok = False
 
-            if jobs[j].ok:
-                update_state("success", jobs[j].json_blob['pull_request']['statuses_url'], jobs[j].id)
-            else:
-                update_state("error", jobs[j].json_blob['pull_request']['statuses_url'], jobs[j].id)
-            print("Job completed (%s : %s)" % (j, get_running_time(time_start)))
+            # Running xtest ...
+            if j.ok and hab_xtest.test() is not cfg.STATUS_OK:
+                update_state("error", statuses_url, j.git_name, j.github_nbr,
+                             "xtest ended with errors")
+                print("Failed running test")
+
+            j.done = True
+            j.running = False
+
+            if j.ok:
+                update_state("success", statuses_url, j.git_name, j.github_nbr,
+                             "Everything OK")
+            print("Job ended (%s : %s)" % (bi, get_running_time(time_start)))
 
 
 def initialize_main_thread():
@@ -121,31 +141,34 @@ def add_job(jpl):
     global job_queue
 
     # 1. Grab necessary information
-    nbr = jpl['number']
-    name = gitcmd.project_name(jpl)
-    url = gitcmd.url(jpl)
-    hash_commit = gitcmd.hash_commit(jpl)
+    git_name = gitcmd.project_name(jpl)
+    github_nbr = gitcmd.number(jpl)
+    clone_url = gitcmd.clone_url(jpl)
+    ref = gitcmd.ref(jpl)
 
     # 2. Create a job
-    job_desc = "%s-%d" % (name, nbr)
-    j = Job(job_desc, jpl, name, url, hash_commit)
+    j = Job(jpl, git_name, github_nbr, clone_url, ref)
     print(j)
 
     # 3. Initialize the thread picking up new jobs
     initialize_main_thread()
 
     # 4. Check if there already is a job
-    update_state("pending", jpl['pull_request']['statuses_url'], j.id)
-    if j.id in job_queue:
-        pr("Job already exist")
-        pr(job_queue)
+    update_state("pending", gitcmd.statuses_url(jpl), git_name, github_nbr,
+            "Job added to the queue")
+
+    build_id = j.get_build_id()
+    if build_id in job_queue:
+        print("Job ({}) already exist".format(build_id))
+        print(job_queue)
         # TODO: Stop current job if running
         # TODO: Remove job from the current location and put it last in the list
         # TODO: Don't just add another job
-        job_queue.append(j.id)
+        job_queue.append(build_id)
     else:
-        pr("New job!")
-        jobs[j.id] = j
-        job_queue.append(j.id)
+        print("New job!")
+        # Put the new job in the dictionary with Jobs
+        jobs[build_id] = j
 
-
+        # Append the build id to the queue
+        job_queue.append(build_id)
