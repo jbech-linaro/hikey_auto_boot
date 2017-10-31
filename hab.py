@@ -225,7 +225,8 @@ class HiKeyAutoBoard():
         return cfg.STATUS_OK
 
 
-    def flash(self, yaml_file):
+    def flash(self, yaml_file, clone_url=None, rev=None, git_name=None,
+            github_nbr=None):
         """ Function that puts HiKey into recover mode and then flash all boot
         binaries. """
         self.enable_recovery_mode()
@@ -258,7 +259,8 @@ class HiKeyAutoBoard():
         return cfg.STATUS_OK
 
 
-    def run_test(self, yaml_file):
+    def run_test(self, yaml_file, clone_url=None, rev=None, git_name=None,
+            github_nbr=None):
         """ Function to run boot up and run xtest. """
         # Open the yaml file containing all the flash commands etc.
         with open(yaml_file, 'r') as yml:

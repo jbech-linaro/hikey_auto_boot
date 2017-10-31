@@ -34,7 +34,7 @@ def get_parser():
 ################################################################################
 # Main function
 ################################################################################
-def test(argv=None):
+def test(argv=None, clone_url=None, rev=None, git_name=None, github_nbr=None):
     print("HiKey auto OP-TEE xtest")
 
     if (argv is not None):
@@ -47,7 +47,7 @@ def test(argv=None):
     if cfg.args is not None and cfg.args.config:
         flash_config = cfg.args.config
 
-    h.run_test(flash_config)
+    h.run_test(flash_config, clone_url, rev, git_name, github_nbr)
     return cfg.STATUS_OK
 
 if __name__ == "__main__":

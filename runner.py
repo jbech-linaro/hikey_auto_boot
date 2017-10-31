@@ -106,14 +106,16 @@ def run_job():
                 j.ok = False
 
             # Flashing ...
-            if j.ok and hab_flash.flash() is not cfg.STATUS_OK:
+            if j.ok and hab_flash.flash(None, j.clone_url, j.ref, j.git_name,
+                    j.github_nbr) is not cfg.STATUS_OK:
                 print("Failed flashing the device")
                 update_state("error", statuses_url, j.git_name, j.github_nbr,
                              "Failed flashing the device(s)")
                 j.ok = False
 
             # Running xtest ...
-            if j.ok and hab_xtest.test() is not cfg.STATUS_OK:
+            if j.ok and hab_xtest.test(None, j.clone_url, j.ref, j.git_name,
+                    j.github_nbr) is not cfg.STATUS_OK:
                 update_state("error", statuses_url, j.git_name, j.github_nbr,
                              "xtest ended with errors")
                 print("Failed running test")

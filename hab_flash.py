@@ -36,7 +36,7 @@ def get_parser():
 ################################################################################
 # Main function
 ################################################################################
-def flash(argv=None):
+def flash(argv=None, clone_url=None, rev=None, git_name=None, github_nbr=None):
     print("HiKey auto flasher")
     status = cfg.STATUS_FAIL
 
@@ -50,7 +50,7 @@ def flash(argv=None):
     if cfg.args is not None and cfg.args.config:
         flash_config = cfg.args.config
 
-    status = h.flash(flash_config)
+    status = h.flash(flash_config, clone_url, rev, git_name, github_nbr)
     h.power_cycle()
     return status
 

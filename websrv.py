@@ -46,10 +46,15 @@ def read_log(git_name, github_nbr, filename):
     # injection attacks.
     log_file = "{d}/{f}".format(d=log_file_dir, f=filename)
     log = ""
-    with open(log_file, 'r') as f:
-        log = f.read()
+    try:
+        with open(log_file, 'r') as f:
+            log = f.read()
+    except IOError:
+        pass
 
-    return log 
+    # Must decode to UTF otherwise there is a risk for a UnicodeDecodeError
+    # exception when trying to access the log from the web-browser.
+    return log.decode('utf-8')
 
 
 @app.route('/')
