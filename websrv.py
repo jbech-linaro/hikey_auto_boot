@@ -64,8 +64,6 @@ def hello_world():
 @app.route('/<git_name>/<int:github_nbr>')
 def show_post(git_name, github_nbr):
     # show the post for a build job
-
-    print(git_name)
     bl = read_log(git_name, github_nbr, "build.log")
 
     fl = read_log(git_name, github_nbr, "flash.log")
