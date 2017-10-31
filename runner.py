@@ -98,8 +98,8 @@ def run_job():
                          "Job added to the queue")
 
             # Building ...
-            if hab_builder.build(None, j.clone_url, j.ref, j.git_name) \
-                    is not cfg.STATUS_OK:
+            if hab_builder.build(None, j.clone_url, j.ref, j.git_name,
+                    j.github_nbr) is not cfg.STATUS_OK:
                 print("Failed building job")
                 update_state("error", statuses_url, j.git_name, j.github_nbr,
                              "Failed building the solution")

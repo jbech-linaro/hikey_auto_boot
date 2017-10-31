@@ -6,6 +6,7 @@ import subprocess
 import time
 
 import cfg
+import logger
 
 ################################################################################
 # Relay logic
@@ -108,6 +109,10 @@ def spawn_pexpect_child():
     shell = "{} --rcfile {}".format("/bin/bash", rcfile)
     return pexpect.spawn(shell)
 
+def terminate_child(child, git_name, github_nbr):
+    child.close()
+    logger.store_logfile(git_name, github_nbr, "build.log")
+
 
 class HiKeyAutoBoard():
     def __init__(self, root=None):
@@ -152,7 +157,8 @@ class HiKeyAutoBoard():
         self.rr.disable()
 
 
-    def build(self, yaml_file, clone_url=None, rev=None, git_name=None):
+    def build(self, yaml_file, clone_url=None, rev=None, git_name=None,
+            github_nbr=None):
         """ Function that setup (repo) and build OP-TEE. """
         with open(yaml_file, 'r') as yml:
             yml_config = yaml.load(yml)
@@ -169,6 +175,7 @@ class HiKeyAutoBoard():
             t = i.get('timeout', 5)
 
             if do_pexpect(child, c, e, t) == False:
+                terminate_child(child, git_name, github_nbr)
                 return cfg.STATUS_FAIL
 
         print("Intermediate pre-build step ...")
@@ -183,17 +190,20 @@ class HiKeyAutoBoard():
             if r == 1:
                 cmd = "git remote set-url pr_committer" % clone_url
             elif r == 2:
+                terminate_child(child, git_name, github_nbr)
                 return cfg.STATUS_FAIL
 
             cmd = "git fetch pr_committer"
             if do_pexpect(child, cmd, None, 60) == False:
                 print("Could not fetch from {}".format(clone_url))
+                terminate_child(child, git_name, github_nbr)
                 return cfg.STATUS_FAIL
 
             cmd = "git checkout %s" % rev
             exp_string = "HEAD is now at %s" % rev[0:7]
             if do_pexpect(child, cmd, exp_string, 20) == False:
                 print("Failed to checkout {}".format(rev))
+                terminate_child(child, git_name, github_nbr)
                 return cfg.STATUS_FAIL
 
         print("Starting build ...")
@@ -207,9 +217,11 @@ class HiKeyAutoBoard():
             t = i.get('timeout', 5)
 
             if do_pexpect(child, c, e, t) == False:
+                terminate_child(child, git_name, github_nbr)
                 return cfg.STATUS_FAIL
 
         print("Build step complete!")
+        terminate_child(child, git_name, github_nbr)
         return cfg.STATUS_OK
 
 

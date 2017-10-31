@@ -36,7 +36,7 @@ def get_parser():
 ################################################################################
 # Main function
 ################################################################################
-def build(argv=None, clone_url=None, rev=None, git_name=None):
+def build(argv=None, clone_url=None, rev=None, git_name=None, github_nbr=None):
     print("HiKey auto builder")
 
     if (argv is not None):
@@ -49,8 +49,9 @@ def build(argv=None, clone_url=None, rev=None, git_name=None):
     if cfg.args is not None and cfg.args.config:
         build_config = cfg.args.config
 
-    print("Building {cu} {rev} {gn}".format(cu=clone_url, rev=rev, gn=git_name))
-    return h.build(build_config, clone_url, rev, git_name)
+    print("Building {cu} {rev} {gn} {gnbr}".format(cu=clone_url, rev=rev, gn=git_name,
+        gnbr=github_nbr))
+    return h.build(build_config, clone_url, rev, git_name, github_nbr)
 
 
 if __name__ == "__main__":

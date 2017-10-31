@@ -9,6 +9,7 @@ import sys
 # Local imports
 from dbg import pr
 import gitcmd
+import logger
 import runner
 
 app = Flask(__name__)
@@ -38,19 +39,39 @@ def dump_json_blob_to_file(request, filename="last_blob.json"):
     json.dump(payload, f, indent=4)
     f.close()
 
+def read_log(git_name, github_nbr, filename):
+    log_file_dir = "{}/logs/{name}/{nbr}".format(os.getcwd(),
+            name=git_name, nbr=github_nbr)
+    # TODO: Check for "../" in log_file_dir so we are not vulnerable to
+    # injection attacks.
+    log_file = "{d}/{f}".format(d=log_file_dir, f=filename)
+    log = ""
+    with open(log_file, 'r') as l:
+        log = l.read().replace('\n', '<br>')
+    return log 
+
 
 @app.route('/')
 def hello_world():
     return 'OP-TEE automatic tester!'
 
-@app.route('/job/<git>/<int:job_id>')
-def show_post(git, job_id):
-    # show the post with the given id, the id is an integer
-    with open('pull_request.json', 'r') as f:
-        jpl = json.load(f)
+@app.route('/<git_name>/<int:github_nbr>')
+def show_post(git_name, github_nbr):
+    # show the post for a build job
 
-    runner.add_job(jpl)
-    return 'OK'
+    bl = "<h1>Build job: {} {}</h1>".format(git_name, github_nbr)
+
+    bl += "<h2>Build log</h2>"
+    print(git_name)
+    bl += read_log(git_name, str(github_nbr), "build.log")
+
+    #bl += "<h2>Flash log</h2>"
+    #bl += read_log(git_name, github_nbr, "flash.log")
+
+    #bl += "<h2>Xtest log</h2>"
+    #bl += read_log(git_name, github_nbr, "xtest.log")
+
+    return bl
 
 @app.route('/payload', methods=['POST'])
 def payload():
