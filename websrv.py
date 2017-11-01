@@ -14,14 +14,6 @@ import runner
 
 app = Flask(__name__)
 
-def do_pull_request(jpl):
-
-    # Commit origin
-    pr(gitcmd.git_branch(jpl))
-    pr(gitcmd.git_remote_string(jpl))
-    pr(gitcmd.git_checkout_cmd(jpl))
-    
-
 def verify_hmac_hash(data, signature):
     github_secret = os.environ['GITHUB_SECRET']
     mac = hmac.new(github_secret, msg=data, digestmod=hashlib.sha1)
