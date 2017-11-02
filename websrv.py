@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/env python3
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 import json
 import hmac
@@ -15,12 +15,13 @@ import runner
 app = Flask(__name__)
 
 def verify_hmac_hash(data, signature):
-    github_secret = os.environ['GITHUB_SECRET']
+    github_secret = bytearray(os.environ['GITHUB_SECRET'], 'utf-8')
     mac = hmac.new(github_secret, msg=data, digestmod=hashlib.sha1)
 
-    # Need to convert this to unicode, since hmac.compare_digest expect either a
-    # unicode string or a byte array
-    hexdigest = unicode("sha1=" + mac.hexdigest(), "utf-8")
+    # Need to convert this to bytearray, since hmac.compare_digest expect either
+    # a unicode string or a byte array
+    hexdigest = bytearray("sha1=" + mac.hexdigest(), "utf-8")
+    signature = bytearray(signature, "utf-8")
     return hmac.compare_digest(hexdigest, signature)
 
 
@@ -46,7 +47,7 @@ def read_log(git_name, github_nbr, filename):
 
     # Must decode to UTF otherwise there is a risk for a UnicodeDecodeError
     # exception when trying to access the log from the web-browser.
-    return log.decode('utf-8')
+    return log
 
 
 @app.route('/')

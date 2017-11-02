@@ -3,8 +3,8 @@ set -e
 export PS1="foo $$ "
 
 # Needs to be synced between this script and build.sh
-SOURCE=/mnt/sshd/hab/hikey
-REFERENCE=/mnt/sshd/devel/optee_projects/reference
+SOURCE=/home/optee/devel/hikey
+REFERENCE=/home/optee/devel/reference
 
 # An extra check to avoid wiping the entire hard drive.
 if [ "$SOURCE" == "" ] || [ "$SOURCE" == "/" ]; then 

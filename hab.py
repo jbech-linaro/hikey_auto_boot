@@ -82,6 +82,7 @@ def cd_check(child, folder):
 def do_pexpect(child, cmd=None, exp=None, timeout=5, error_pos=1):
     if cmd is not None:
         print("Sending: %s" % cmd)
+        print(type(cmd))
         child.sendline(cmd)
 
     if exp is not None:
@@ -106,7 +107,7 @@ def do_pexpect(child, cmd=None, exp=None, timeout=5, error_pos=1):
 
 def spawn_pexpect_child():
     rcfile = '--rcfile {}/.bashrc'.format(os.getcwd())
-    child = pexpect.spawn('/bin/bash', ['--rcfile', rcfile])
+    child = pexpect.spawnu('/bin/bash', ['--rcfile', rcfile])
     return child
 
 def terminate_child(child, git_name, github_nbr, filename):

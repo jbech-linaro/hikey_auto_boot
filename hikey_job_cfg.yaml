@@ -2,7 +2,7 @@
 flash_cmds:
         - cmd: export PS1="$ "
 
-        - cmd: cd /mnt/sshd/hab/hikey/build
+        - cmd: cd /home/optee/devel/hikey/build
 
         - cmd: ls hikey.mk
           exp: hikey.mk
@@ -92,16 +92,16 @@ build_init_cmds:
         # and not how it was intended to be done from the beginning.
         - cmd: export PS1="$ "
 
-        - cmd: /home/jbech/devel/hikey_auto_boot/init_repo.sh
+        - cmd: /home/optee/devel/hikey_auto_boot/init_repo.sh
           exp: Done setting up HiKey project
           timeout: 120
 
 build_cmds:
-        - cmd: cd /mnt/sshd/hab/hikey/build
+        - cmd: cd /home/optee/devel/hikey/build
 
         - cmd: ln -sf hikey.mk Makefile
 
-        - cmd: /home/jbech/devel/hikey_auto_boot/build.sh
+        - cmd: /home/optee/devel/hikey_auto_boot/build.sh
           exp: [ "Done building HiKey", "Failed building HiKey" ]
           error_pos: 1 # This indicates where the errors starts in the array above
           timeout: 1200
