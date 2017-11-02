@@ -60,7 +60,8 @@ def get_running_time(time_start):
 def update_state(state, statuses_url, git_name, github_number, description):
     request = { "context": "OP-TEE HiKey auto builder" }
     request['state'] = state
-    request['target_url'] = "http://d40c9a41.ngrok.io/{}/{}".format(git_name, github_number)
+    # We really would like to use a DNS here instead, but for now, this will do.
+    request['target_url'] = "http://742539aa.ngrok.io/{}/{}".format(git_name, github_number)
     request['description'] = description
 
     print(request)
