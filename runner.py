@@ -117,9 +117,10 @@ def run_job():
             # Running xtest ...
             if j.ok and hab_xtest.test(None, j.clone_url, j.ref, j.git_name,
                     j.github_nbr) is not cfg.STATUS_OK:
+                print("Failed running test")
                 update_state("error", statuses_url, j.git_name, j.github_nbr,
                              "xtest ended with errors")
-                print("Failed running test")
+                j.ok = False
 
             j.done = True
             j.running = False

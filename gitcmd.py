@@ -12,7 +12,7 @@ def checkout_cmd(jpl):
 
 def clone_url(jpl):
     """ Returns full URL to the committers own project. """
-    return jpl['repository']['clone_url']
+    return jpl['pull_request']['head']['repo']['clone_url']
 
 def remote_string(jpl):
     """ Returns command to be used when adding a remote. """
