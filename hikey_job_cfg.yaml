@@ -7,7 +7,7 @@ flash_cmds:
         - cmd: ls hikey.mk
           exp: hikey.mk
 
-        - cmd: make recovery
+        - cmd: make CFG_FLASH_SIZE=4 recovery
           exp: "Press enter to continue"
           timeout: 10
 
