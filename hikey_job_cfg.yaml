@@ -18,9 +18,9 @@ flash_cmds:
           exp: 2. Connect HiKey to power up \(press enter\)
 
         - cmd: "" # Enter from previous expect
-          exp: "Then press enter to continue flashing"
+          exp: "fastboot flash loader"
 
-        - cmd: "" # Enter from previous expect
+        - cmd: "" # Send one more "enter", which OP-TEE make expects
           exp: "sending 'ptable'"
 
         - exp: "writing 'ptable'..."
