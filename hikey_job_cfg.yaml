@@ -7,7 +7,7 @@ flash_cmds:
         - cmd: ls hikey.mk
           exp: hikey.mk
 
-        - cmd: make CFG_FLASH_SIZE=4 recovery
+        - cmd: make CFG_DRAM_SIZE_GB=1 CFG_FLASH_SIZE=4 recovery
           exp: "Press enter to continue"
           timeout: 10
 
@@ -44,10 +44,11 @@ xtest_cmds:
 
         - cmd: "export PS1=\"root@HiKey: \""
           exp: "root@HiKey: "
-          timeout: 3
+          timeout: 10
 
         - cmd: xtest
           exp: "Run test suite with level"
+          timeout: 15
 
         - exp: [ "test cases of which 0 failed", "root@HiKey: " ] # Prompt means error
           error_pos: 1 # This indicates where the errors starts in the array above
