@@ -79,11 +79,31 @@ def cd_check(child, folder):
     child.expect(folder, 3)
 
 
-def do_pexpect(child, cmd=None, exp=None, timeout=5, error_pos=1):
+def do_pexpect(child, cmd=None, exp=None, exp_exact=None, timeout=5, error_pos=1):
     if cmd is not None:
         print("Sending: %s" % cmd)
         print(type(cmd))
         child.sendline(cmd)
+
+    if exp_exact is not None:
+        e = []
+
+        # In the yaml file there could be standalone lines or there could be
+        # a list if expected output.
+        if isinstance(exp_exact, list):
+            e = exp_exact + [pexpect.TIMEOUT]
+        else:
+            e.append(exp_exact)
+            e.append(pexpect.TIMEOUT)
+
+        print("Expecting exact: {} (timeout={}, error={})".format(e, timeout, error_pos))
+        r = child.expect_exact(e, timeout)
+        print("Got: {} (error at {})".format(r, error_pos))
+        if r >= error_pos:
+            print("Returning STATUS_FAIL")
+            return False
+
+        return True
 
     if exp is not None:
         e = []
@@ -173,9 +193,10 @@ class HiKeyAutoBoard():
         for i in yml_iter:
             c = i.get('cmd', None)
             e = i.get('exp', None)
+            ee = i.get('exp_exact', None)
             t = i.get('timeout', 5)
 
-            if do_pexpect(child, c, e, t) == False:
+            if do_pexpect(child, c, e, ee, t) == False:
                 terminate_child(child, git_name, github_nbr, "build.log")
                 return cfg.STATUS_FAIL
 
@@ -195,14 +216,14 @@ class HiKeyAutoBoard():
                 return cfg.STATUS_FAIL
 
             cmd = "git fetch pr_committer"
-            if do_pexpect(child, cmd, None, 60) == False:
+            if do_pexpect(child, cmd, None, None, 60) == False:
                 print("Could not fetch from {}".format(clone_url))
                 terminate_child(child, git_name, github_nbr, "build.log")
                 return cfg.STATUS_FAIL
 
             cmd = "git checkout %s" % rev
             exp_string = "HEAD is now at %s" % rev[0:7]
-            if do_pexpect(child, cmd, exp_string, 20) == False:
+            if do_pexpect(child, cmd, exp_string, None, 20) == False:
                 print("Failed to checkout {}".format(rev))
                 terminate_child(child, git_name, github_nbr, "build.log")
                 return cfg.STATUS_FAIL
@@ -215,9 +236,10 @@ class HiKeyAutoBoard():
         for i in yml_iter:
             c = i.get('cmd', None)
             e = i.get('exp', None)
+            ee = i.get('exp_exact', None)
             t = i.get('timeout', 5)
 
-            if do_pexpect(child, c, e, t) == False:
+            if do_pexpect(child, c, e, ee, t) == False:
                 terminate_child(child, git_name, github_nbr, "build.log")
                 return cfg.STATUS_FAIL
 
@@ -247,9 +269,10 @@ class HiKeyAutoBoard():
         for i in yml_iter:
             c = i.get('cmd', None)
             e = i.get('exp', None)
+            ee = i.get('exp_exact', None)
             t = i.get('timeout', 5)
 
-            if do_pexpect(child, c, e, t) == False:
+            if do_pexpect(child, c, e, ee, t) == False:
                 self.disable_recovery_mode()
                 terminate_child(child, git_name, github_nbr, "flash.log")
                 return cfg.STATUS_FAIL
@@ -281,9 +304,10 @@ class HiKeyAutoBoard():
         for i in yml_iter:
             c = i.get('cmd', None)
             e = i.get('exp', None)
+            ee = i.get('exp_exact', None)
             t = i.get('timeout', 5)
 
-            if do_pexpect(child, c, e, t) == False:
+            if do_pexpect(child, c, e, ee, t) == False:
                 self.power_off()
                 terminate_child(child, git_name, github_nbr, "xtest.log")
                 return cfg.STATUS_FAIL
