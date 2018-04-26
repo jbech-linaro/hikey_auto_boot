@@ -35,17 +35,21 @@ flash_cmds:
           timeout: 30
 
 xtest_cmds:
-        - exp: Starting tee-supplicant...
+        - exp: "buildroot login:"
           timeout: 60
 
-        - exp: Please press Enter to activate this console.
-          timeout: 10
+        - cmd: "root"
+          exp: "# "
+          timeout: 3
 
-        - cmd: ""
-          exp: root@HiKey:/
+        - cmd: "export PS1=\"root@HiKey: \""
+          exp: "root@HiKey: "
+          timeout: 3
 
         - cmd: xtest
-          exp: [ "test cases of which 0 failed", "root@HiKey:/" ] # Prompt means error
+          exp: "Run test suite with level"
+
+        - exp: [ "test cases of which 0 failed", "root@HiKey: " ] # Prompt means error
           error_pos: 1 # This indicates where the errors starts in the array above
           timeout: 1200
 
