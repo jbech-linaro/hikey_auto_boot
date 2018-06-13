@@ -51,8 +51,8 @@ def read_log(git_name, github_nbr, filename):
 
 
 @app.route('/')
-def hello_world():
-    return 'OP-TEE automatic tester!'
+def main_page():
+    return render_template('main.html')
 
 @app.route('/<git_name>/<int:github_nbr>')
 def show_post(git_name, github_nbr):

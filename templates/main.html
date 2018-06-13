@@ -1,0 +1,68 @@
+<html>
+<head>
+<style>
+	div {
+		background-color: lightgrey;
+		font-family: helvetica;
+		font-size:13;
+	}
+
+	pre, code {
+		background-color: lightgrey;
+		font-family: 'Consolas', 'Menlo', 'Deja Vu Sans Mono', 'Bitstream Vera Sans Mono', monospace;
+		white-space: pre-wrap;       /* Since CSS 2.1 */
+		white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+		white-space: -pre-wrap;      /* Opera 4-6 */
+		white-space: -o-pre-wrap;    /* Opera 7 */
+		word-wrap: break-word;       /* Internet Explorer 5.5+ */
+		border-radius: 0 !important;
+		font-size: 0.7em;
+	}
+
+	table {
+	    color: #333; /* Lighten up font color */
+	    font-family: Helvetica, Arial, sans-serif; /* Nicer font */
+	    width: 640px; 
+	    border-collapse: 
+	    collapse; border-spacing: 0; 
+	    margin: auto;
+	}
+
+	td, th { border: 1px solid #CCC; height: 30px; } /* Make cells a bit taller */
+
+	th {
+	    background: #F3F3F3; /* Light grey background */
+	    font-weight: bold; /* Make sure they're bold */
+	}
+
+	td {
+	    background: #FAFAFA; /* Lighter grey background */
+	    text-align: center; /* Center our text */
+	}
+</style>
+</head>
+<title>HiKey Auto Boot</title>
+<body>
+  <table>
+	  <tr>
+		  <th>Job ID / Log</th>
+		  <th>Git</th>
+		  <th>Pull Request</th>
+		  <th>Date</th>
+		  <th>Runtime</th>
+		  <th>Status</th>
+		  <th>Command</th>
+	  </tr>
+	  {# FIXME: Paginate loop other last 10 jobs #}
+	  <tr>
+		  <td><a href="log123">123</a></td>
+		  <td><a href="https://github.com/OP-TEE/optee_os" target="_blank">optee_os</a></td>
+		  <td><a href="https://github.com/OP-TEE/optee_os/issues/456" target="_blank">456</a></td>
+		  <td>2018-06-01</td>
+		  <td>2h:43m</td>
+		  <td>running</td>
+		  <td><a href="stop">[stop]</a> | <a href="restart">[restart]</a></td>
+	  </tr>
+  <table>
+</body>
+</html>
