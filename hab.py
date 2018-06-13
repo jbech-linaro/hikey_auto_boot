@@ -186,7 +186,7 @@ class HiKeyAutoBoard():
         yml_iter = yml_config['build_init_cmds']
 
         child = spawn_pexpect_child()
-        f = open('build.log', 'w')
+        f = open(cfg.build_log, 'w')
         child.logfile = f
 
         print("Initiate build setup ...")
@@ -197,7 +197,7 @@ class HiKeyAutoBoard():
             t = i.get('timeout', 5)
 
             if do_pexpect(child, c, e, ee, t) == False:
-                terminate_child(child, git_name, github_nbr, "build.log")
+                terminate_child(child, git_name, github_nbr, cfg.build_log)
                 return cfg.STATUS_FAIL
 
         print("Intermediate pre-build step ...")
@@ -212,20 +212,20 @@ class HiKeyAutoBoard():
             if r == 1:
                 cmd = "git remote set-url pr_committer" % clone_url
             elif r == 2:
-                terminate_child(child, git_name, github_nbr, "build.log")
+                terminate_child(child, git_name, github_nbr, cfg.build_log)
                 return cfg.STATUS_FAIL
 
             cmd = "git fetch pr_committer"
             if do_pexpect(child, cmd, None, None, 60) == False:
                 print("Could not fetch from {}".format(clone_url))
-                terminate_child(child, git_name, github_nbr, "build.log")
+                terminate_child(child, git_name, github_nbr, cfg.build_log)
                 return cfg.STATUS_FAIL
 
             cmd = "git checkout %s" % rev
             exp_string = "HEAD is now at %s" % rev[0:7]
             if do_pexpect(child, cmd, exp_string, None, 20) == False:
                 print("Failed to checkout {}".format(rev))
-                terminate_child(child, git_name, github_nbr, "build.log")
+                terminate_child(child, git_name, github_nbr, cfg.build_log)
                 return cfg.STATUS_FAIL
 
         print("Starting build ...")
@@ -240,11 +240,11 @@ class HiKeyAutoBoard():
             t = i.get('timeout', 5)
 
             if do_pexpect(child, c, e, ee, t) == False:
-                terminate_child(child, git_name, github_nbr, "build.log")
+                terminate_child(child, git_name, github_nbr, cfg.build_log)
                 return cfg.STATUS_FAIL
 
         print("Build step complete!")
-        terminate_child(child, git_name, github_nbr, "build.log")
+        terminate_child(child, git_name, github_nbr, cfg.build_log)
         return cfg.STATUS_OK
 
 
@@ -261,7 +261,7 @@ class HiKeyAutoBoard():
         yml_iter = yml_config['flash_cmds']
 
         child = spawn_pexpect_child()
-        f = open('flash.log', 'w')
+        f = open(cfg.flash_log, 'w')
         child.logfile = f
 
         print("Flashing the device")
@@ -274,12 +274,12 @@ class HiKeyAutoBoard():
 
             if do_pexpect(child, c, e, ee, t) == False:
                 self.disable_recovery_mode()
-                terminate_child(child, git_name, github_nbr, "flash.log")
+                terminate_child(child, git_name, github_nbr, cfg.flash_log)
                 return cfg.STATUS_FAIL
 
         print("Done flashing!")
         self.disable_recovery_mode()
-        terminate_child(child, git_name, github_nbr, "flash.log")
+        terminate_child(child, git_name, github_nbr, cfg.flash_log)
         return cfg.STATUS_OK
 
 
@@ -292,7 +292,7 @@ class HiKeyAutoBoard():
         yml_iter = yml_config['xtest_cmds']
 
         child = spawn_pexpect_child()
-        f = open('xtest.log', 'w')
+        f = open(cfg.run_log, 'w')
         child.logfile = f
 
         child.sendline("picocom -b 115200 /dev/ttyUSB0")
@@ -309,10 +309,10 @@ class HiKeyAutoBoard():
 
             if do_pexpect(child, c, e, ee, t) == False:
                 self.power_off()
-                terminate_child(child, git_name, github_nbr, "xtest.log")
+                terminate_child(child, git_name, github_nbr, cfg.run_log)
                 return cfg.STATUS_FAIL
 
         print("xtest done!")
         self.power_off()
-        terminate_child(child, git_name, github_nbr, "xtest.log")
+        terminate_child(child, git_name, github_nbr, cfg.run_log)
         return cfg.STATUS_OK

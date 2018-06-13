@@ -8,6 +8,7 @@ import sys
 
 # Local imports
 from dbg import pr
+import cfg
 import gitcmd
 import logger
 import runner
@@ -54,14 +55,25 @@ def read_log(git_name, github_nbr, filename):
 def main_page():
     return render_template('main.html')
 
+
+@app.route('/start')
+def start_page():
+    runner.test_job_start()
+    return 'OK'
+
+@app.route('/stop')
+def stop_page():
+    runner.test_job_stop()
+    return 'OK'
+
 @app.route('/<git_name>/<int:github_nbr>')
 def show_post(git_name, github_nbr):
     # show the post for a build job
-    bl = read_log(git_name, github_nbr, "build.log")
+    bl = read_log(git_name, github_nbr, cfg.build_log)
 
-    fl = read_log(git_name, github_nbr, "flash.log")
+    fl = read_log(git_name, github_nbr, cfg.flash_log)
 
-    tl = read_log(git_name, github_nbr, "xtest.log")
+    tl = read_log(git_name, github_nbr, cfg.run_log)
 
     return render_template('job.html', gn=git_name, gnr=github_nbr,
             build_log=bl, flash_log=fl, test_log=tl)
