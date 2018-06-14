@@ -34,6 +34,7 @@ regularly for the stopped() condition."""
         self.job = job
 
     def stop(self):
+        l.info("Stopping PR {}".format(self.job.pr))
         self._stop_event.set()
 
     def stopped(self):
@@ -43,6 +44,20 @@ regularly for the stopped() condition."""
         if self.stopped():
             return
         l.info("Job {} running!".format(self.job))
+        time.sleep(3)
+        if self.stopped():
+            l.info("Job {} has been requsted to stop the work!".format(self.job))
+            return
+        time.sleep(3)
+        if self.stopped():
+            l.info("Job {} has been requsted to stop the work!".format(self.job))
+            return
+        time.sleep(3)
+        if self.stopped():
+            l.info("Job {} has been requsted to stop the work!".format(self.job))
+            return
+        time.sleep(3)
+        l.info("Done with Job {}!".format(self.job))
 
 worker_thread = None
 
@@ -54,27 +69,37 @@ class WorkerThread(threading.Thread):
         self.args = args
         self.kwargs = kwargs
         self.q = deque()
+        self.jt = None
         return
 
     def add(self, pr):
-        # Remove pending jobs affecting same PR
+        # Remove pending jobs affecting same PR from the queue
         while self.q.count(pr) > 0:
             l.debug("PR{} pending, removing it from queue".format(pr))
             self.q.remove(pr)
+
+        # If the ongoing work is from the same PR, then stop that too
+        if self.jt is not None:
+            if self.jt.job.pr == pr:
+                l.info("The new/updated PR ({}) have a corresponding job running, sending stop()".format(pr))
+                self.jt.stop()
+
+        # Finally add the new/updated PR to the queue
         self.q.append(pr)
         l.info("Added PR{}".format(pr))
 
     def run(self):
         while(True):
-            time.sleep(3)
+            time.sleep(1)
             l.info("Checking for work (q:{})".format(self.q))
 
             if len(self.q) > 0:
                 pr = self.q.popleft()
                 l.info("Handling job: {}".format(pr))
-                jt = JobThread(Job(pr))
-                jt.start()
-                jt.join()
+                self.jt = JobThread(Job(pr))
+                self.jt.start()
+                self.jt.join()
+                self.jt = None
         return
 
 def initialize_worker_thread():
@@ -104,7 +129,7 @@ def test():
     while (True):
         pr = random.randint(1, 10)
         worker_thread.add(pr)
-        time.sleep(random.randint(1, 4))
+        time.sleep(random.randint(1, 2))
 
 
     # Wait forever
