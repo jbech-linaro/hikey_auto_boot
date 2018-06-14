@@ -1,3 +1,4 @@
+import logging as l
 import os
 import requests
 import threading
@@ -12,6 +13,9 @@ import hab_builder
 import hab_flash
 import hab_xtest
 import log_type
+import core_logger
+
+
 
 class StoppableThread(threading.Thread):
     """Thread class with a stop() method. The thread itself has to check
@@ -21,6 +25,8 @@ regularly for the stopped() condition."""
         super(StoppableThread, self).__init__()
         self._stop_event = threading.Event()
         self.q = deque()
+        self.current = None
+        self.job_thread = JobThread()
 
     def stop(self):
         self._stop_event.set()
@@ -28,12 +34,18 @@ regularly for the stopped() condition."""
     def stopped(self):
         return self._stop_event.is_set()
 
-    def add_job(self, j):
+    def add_job(self, pr_id, pr_number, git_name):
+        l.info("Adding {pi}:{gn}/{pn}".format(pi=pr_id,
+            gn=git_name, pn=pr_number))
         self.q.append(j)
-        print(self.q)
+            
 
     def get_job(self):
-        return self.q.popleft()
+        self.current = self.q.popleft()
+        return self.current
+
+    def get_current(self):
+        return self.current
 
     def remove_all_jobs(self):
         self.q.clear()
@@ -55,7 +67,7 @@ regularly for the stopped() condition."""
 jobs = {}
 job_queue = []
 
-job_thread = None
+main_thread = None
 
 class Job():
     def __init__(self,
@@ -202,14 +214,21 @@ def run_job():
 
 
 def initialize_job_thread():
-    global job_thread
+    global main_thread
     # Return if thread is already running.
-    if job_thread != None:
+    if main_thread != None:
         return
 
-    job_thread = StoppableThread()
-    job_thread.setDaemon(True)
-    job_thread.start()
+    LOG_FMT = "%(levelname)s:%(asctime)s %(funcName)s:%(lineno)d # %(message)s"
+    l.basicConfig(filename=cfg.core_log,
+        level = l.DEBUG,
+        format = LOG_FMT,
+        filemode = 'w')
+
+    main_thread = StoppableThread()
+    main_thread.setDaemon(True)
+    main_thread.start()
+    l.info("Started job thread")
 
 
 def add_job(jpl):
@@ -254,11 +273,18 @@ job_id = 1
 def test_job_start():
     global job_id
     initialize_job_thread()
-    job_thread.add_job(job_id)
+
+    l.info("Got a new job")
+    pr_id = 183720495
+    pr_number = 2274
+    git_name = "OP-TEE/optee_os"
+
+    main_thread.add_job(pr_id, pr_number, git_name)
     job_id += 1
 
 def test_job_stop():
-    global job_thread
-    job_thread.stop()
-    job_thread.join()
-    job_thread = None
+    global main_thread
+    l.info("Stopping all jobs")
+    main_thread.stop()
+    main_thread.join()
+    main_thread = None
