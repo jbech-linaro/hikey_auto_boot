@@ -1,23 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import logging as l
-import os
-import requests
 import threading
 import time
 import random
 from collections import deque
 
-# Local import
-from dbg import pr
-import cfg
-import hab_builder
-import hab_flash
-import hab_xtest
-import log_type
-import core_logger
-
 class Job():
+    """Class defining a complete Job which normally includes clone, build, flash
+    and run tests on a device."""
     def __init__(self, pr=None):
         self.pr = pr
 
@@ -41,6 +32,8 @@ regularly for the stopped() condition."""
         return self._stop_event.is_set()
 
     def run(self):
+        """This is the main function for running a complete clone, build, flash
+        and test job."""
         if self.stopped():
             return
         l.info("Job {} running!".format(self.job))
@@ -62,10 +55,10 @@ regularly for the stopped() condition."""
 worker_thread = None
 
 class WorkerThread(threading.Thread):
+    """Thread class responsible to adding and running jobs."""
     def __init__(self, group=None, target=None, name=None,
             args=(), kwargs=None):
-        threading.Thread.__init__(self, group=group, target=target,
-                name=name)
+        threading.Thread.__init__(self, group=group, target=target, name=name)
         self.args = args
         self.kwargs = kwargs
         self.q = deque()
@@ -73,6 +66,7 @@ class WorkerThread(threading.Thread):
         return
 
     def add(self, pr):
+        """Responsible of adding new jobs the the job queue."""
         # Remove pending jobs affecting same PR from the queue
         while self.q.count(pr) > 0:
             l.debug("PR{} pending, removing it from queue".format(pr))
@@ -89,6 +83,7 @@ class WorkerThread(threading.Thread):
         l.info("Added PR{}".format(pr))
 
     def run(self):
+        """Main function taking care of running all jobs in the job queue."""
         while(True):
             time.sleep(1)
             l.info("Checking for work (q:{})".format(self.q))
@@ -103,6 +98,7 @@ class WorkerThread(threading.Thread):
         return
 
 def initialize_worker_thread():
+    """Initialize the main thread responsible for adding and running jobs."""
     global worker_thread
     # Return if thread is already running.
     if worker_thread != None:
@@ -130,7 +126,6 @@ def test():
         pr = random.randint(1, 10)
         worker_thread.add(pr)
         time.sleep(random.randint(1, 2))
-
 
     # Wait forever
     worker_thread.join()
