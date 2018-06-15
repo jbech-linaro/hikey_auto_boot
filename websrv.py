@@ -52,17 +52,18 @@ def read_log(git_name, github_nbr, filename):
 
 @app.route('/')
 def main_page():
-    return render_template('main.html')
+    sql_data = worker.db_get_html_row()
+    return render_template('main.html', sd=sql_data)
 
 
-@app.route('/start')
-def start_page():
-    worker.force_start()
+@app.route('/restart/<int:pr_number>')
+def restart_page(pr_number):
+    worker.force_restart(pr_number)
     return 'OK'
 
-@app.route('/stop')
-def stop_page():
-    worker.cancel(2274)
+@app.route('/stop/<int:pr_number>')
+def stop_page(pr_number):
+    worker.cancel(pr_number)
     return 'OK'
 
 @app.route('/<git_name>/<int:github_nbr>')

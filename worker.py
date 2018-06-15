@@ -22,24 +22,40 @@ def initialize_db():
     if not os.path.isfile(DB_FILE):
         con = db_connect()
         cur = con.cursor()
-        sql = """
+        sql = '''
                 CREATE TABLE job (
                     id integer PRIMARY KEY,
                     pr_id text NOT NULL,
                     pr_number text NOT NULL,
-                    date text NOT NULL)
-              """
+                    full_name text NOT_NULL,
+                    date text NOT NULL,
+                    run_time text DEFAULT "00:00",
+                    status text DEFAULT Pending)
+              '''
         cur.execute(sql)
         con.close()
 
-def db_add_build_record(pr_id, pr_number):
+def db_add_build_record(pr_id, pr_number, full_name):
     con = db_connect()
     cur = con.cursor()
-    sql = "INSERT INTO job (pr_id, pr_number, date) " \
-            "VALUES({},{},datetime('now'))".format(pr_id, pr_number)
+    sql = "INSERT INTO job (pr_id, pr_number, full_name, date) " + \
+            "VALUES('{}','{}','{}',datetime('now'))".format(
+                    pr_id, pr_number, full_name)
+    log.debug(sql)
     cur.execute(sql)
     con.commit()
     con.close()
+
+def db_get_html_row():
+    con = db_connect()
+    cur = con.cursor()
+    #sql = "SELECT * FROM job"
+    sql = "SELECT * FROM job ORDER BY id DESC LIMIT 3"
+    cur.execute(sql)
+    r = cur.fetchall()
+    con.commit()
+    con.close()
+    return r
 
 ################################################################################
 # GitHub Json
@@ -106,6 +122,8 @@ class Job():
     def pr_id(self):
         return self.gh.pr_id()
 
+    def pr_full_name(self):
+        return self.gh.pr_full_name()
 
 class JobThread(threading.Thread):
     """Thread class with a stop() method. The thread itself has to check
@@ -129,7 +147,12 @@ regularly for the stopped() condition."""
         log.debug("START Job : {}".format(self.job))
         for i in range(0, 10):
             time.sleep(1)
-            db_add_build_record(self.job.pr_id(), self.job.pr_number())
+            pr_id = self.job.pr_id()
+            pr_number = self.job.pr_number()
+            pr_full_name = self.job.pr_full_name()
+
+            db_add_build_record(pr_id, pr_number, pr_full_name)
+
             if self.stopped():
                 log.debug("STOP Job : {}[{}]".format(self.job, i))
                 return
@@ -177,7 +200,7 @@ class WorkerThread(threading.Thread):
                 log.debug("Got a stop from web PR ({})".format(pr))
                 self.jt.stop()
 
-    def force_start(self, pr_number, pr_id):
+    def force_restart(self, pr_number, pr_id=None):
         # If there is already a job ongoing, then cancel it. Note that doing
         # like this comes with limitations, since this could stop a job start
         # has been started by a real pull request. This should be fixed in a
@@ -264,13 +287,21 @@ def add(payload, debug=False):
         worker_thread.add(pr, payload)
     return True
 
-def cancel(pr):
-    if pr is None:
+def cancel(pr_number):
+    if pr_number is None:
         log.error("Trying to stop a job without a PR number")
     elif worker_thread is None:
         log.error("Threads are not initialized")
     else:
-        worker_thread.cancel(pr)
+        worker_thread.cancel(pr_number)
+
+def force_restart(pr_number):
+    if pr_number is None:
+        log.error("Trying to stop a job without a PR number")
+    elif worker_thread is None:
+        log.error("Threads are not initialized")
+    else:
+        worker_thread.force_restart(pr_number)
 
 ################################################################################
 # Debug

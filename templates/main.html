@@ -22,7 +22,7 @@
 	table {
 	    color: #333; /* Lighten up font color */
 	    font-family: Helvetica, Arial, sans-serif; /* Nicer font */
-	    width: 640px; 
+	    width: 800px; 
 	    border-collapse: 
 	    collapse; border-spacing: 0; 
 	    margin: auto;
@@ -53,16 +53,19 @@
 		  <th>Status</th>
 		  <th>Command</th>
 	  </tr>
-	  {# FIXME: Paginate loop other last 10 jobs #}
+	  {% for l in sd %}
 	  <tr>
-		  <td><a href="log123">123</a></td>
-		  <td><a href="https://github.com/OP-TEE/optee_os" target="_blank">optee_os</a></td>
-		  <td><a href="https://github.com/OP-TEE/optee_os/issues/456" target="_blank">456</a></td>
-		  <td>2018-06-01</td>
-		  <td>2h:43m</td>
-		  <td>running</td>
-		  <td><a href="stop">[stop]</a> | <a href="restart">[restart]</a></td>
+		  <td>{{ l[1] }}</td>
+		  <td><a href="https://github.com/{{ l[3] }}">{{ l[3] }}</a></td>
+		  <td><a href="https://github.com/OP-TEE/optee_os/pull/{{ l[2] }}">{{ l[2] }}</a></td>
+		  <td>{{ l[4] }}</td>
+		  <td>{{ l[5] }}</td>
+		  <td>{{ l[6] }}</td>
+		  <td><a href="stop/{{ l[2] }}">[stop]</a> |
+		      <a href="restart/{{ l[2] }}">[restart]</a> 
+		      </td>
 	  </tr>
+	  {% endfor %}
   <table>
 </body>
 </html>
