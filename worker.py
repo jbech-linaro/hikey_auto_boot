@@ -87,7 +87,11 @@ regularly for the stopped() condition."""
         if self.stopped():
             return
         log.debug("START Job : {}".format(self.job))
-        time.sleep(3)
+        for i in range(0, 10):
+            time.sleep(3)
+            if self.stopped():
+                log.debug("STOP Job : {}[{}]".format(self.job, i))
+                return
         log.debug("END   Job : {}".format(self.job))
 
 ################################################################################
@@ -122,6 +126,12 @@ class WorkerThread(threading.Thread):
         # Finally add the new/updated PR to the queue
         self.q.append(pr)
         log.info("Added PR{}".format(pr))
+
+    def cancel(self, pr):
+        if self.jt is not None:
+            if self.jt.job.pr == pr:
+                log.debug("Got a stop from web PR ({})".format(pr))
+                self.jt.stop()
 
     def run(self):
         """Main function taking care of running all jobs in the job queue."""
@@ -173,15 +183,6 @@ def initialize(payload):
         initialize_github(payload)
         log.info("Initialize done!")
 
-def debug_test():
-    for j in range(0, 5):
-        worker_thread.add(5)
-
-    while (True):
-        pr = random.randint(1, 10)
-        worker_thread.add(pr)
-        time.sleep(random.randint(1, 2))
-
 def add(payload=None):
     initialize(payload)
 
@@ -192,6 +193,26 @@ def add(payload=None):
         global gh
         pr = gh.pr_number()
         worker_thread.add(pr, payload)
+
+def cancel(pr):
+    if pr is None:
+        log.error("Trying to stop a job without a PR number")
+    elif worker_thread is None:
+        log.error("Threads are not initialized")
+    else:
+        worker_thread.cancel(pr)
+
+################################################################################
+# Debug
+################################################################################
+def debug_test():
+    for j in range(0, 5):
+        worker_thread.add(5)
+
+    while (True):
+        pr = random.randint(1, 10)
+        worker_thread.add(pr)
+        time.sleep(random.randint(1, 2))
 
 def local_run():
     payload = None

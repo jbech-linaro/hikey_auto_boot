@@ -62,7 +62,7 @@ def start_page():
 
 @app.route('/stop')
 def stop_page():
-    worker.test_job_stop()
+    worker.cancel(2274)
     return 'OK'
 
 @app.route('/<git_name>/<int:github_nbr>')
