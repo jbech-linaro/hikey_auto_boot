@@ -49,11 +49,15 @@ def read_log(git_name, github_nbr, filename):
     # exception when trying to access the log from the web-browser.
     return log
 
-
 @app.route('/')
-def main_page():
-    sql_data = worker.db_get_html_row()
-    return render_template('main.html', sd=sql_data)
+def main_page(page=1):
+    sql_data = worker.db_get_html_row(page)
+    return render_template('main.html', sd=sql_data, page=page)
+
+@app.route('/<int:page>')
+def main_paginate(page):
+    sql_data = worker.db_get_html_row(page)
+    return render_template('main.html', sd=sql_data, page=page)
 
 
 @app.route('/restart/<int:pr_number>')

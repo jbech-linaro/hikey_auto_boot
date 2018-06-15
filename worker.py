@@ -46,11 +46,10 @@ def db_add_build_record(pr_id, pr_number, full_name):
     con.commit()
     con.close()
 
-def db_get_html_row():
+def db_get_html_row(page):
     con = db_connect()
     cur = con.cursor()
-    #sql = "SELECT * FROM job"
-    sql = "SELECT * FROM job ORDER BY id DESC LIMIT 3"
+    sql = "SELECT * FROM job ORDER BY id DESC LIMIT {}".format(page * 15)
     cur.execute(sql)
     r = cur.fetchall()
     con.commit()
