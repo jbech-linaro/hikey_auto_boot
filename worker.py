@@ -29,18 +29,18 @@ def initialize_db():
                     full_name text NOT_NULL,
                     date text NOT NULL,
                     run_time text DEFAULT "00:00",
-                    status text DEFAULT Pending)
+                    status text DEFAULT Pending,
+                    payload text NOT NULL)
               '''
         cur.execute(sql)
         con.close()
 
-def db_add_build_record(pr_id, pr_number, full_name):
+def db_add_build_record(pr_id, pr_number, full_name, payload):
     con = db_connect()
     cur = con.cursor()
-    sql = "INSERT INTO job (pr_id, pr_number, full_name, date) " + \
-            "VALUES('{}','{}','{}',datetime('now'))".format(
-                    pr_id, pr_number, full_name)
-    log.debug(sql)
+    sql = "INSERT INTO job (pr_id, pr_number, full_name, date, payload) " + \
+            "VALUES('{}','{}','{}',datetime('now'), '{}')".format(
+                    pr_id, pr_number, full_name, json.dumps(payload))
     cur.execute(sql)
     con.commit()
     con.close()
@@ -53,6 +53,21 @@ def db_update_job_done(pr_id, status, running_time):
     cur.execute(sql)
     con.commit()
     con.close()
+
+def db_get_payload_from_pr_id(pr_id):
+    con = db_connect()
+    cur = con.cursor()
+    sql = "SELECT payload FROM job WHERE pr_id = '{}'".format(pr_id)
+    cur.execute(sql)
+    r = cur.fetchall()
+    if len(r) > 1:
+        log.error("Found duplicated pr_id in the database")
+        return -1
+    con.commit()
+    con.close()
+    print(r)
+    return json.loads("".join(r[0]))
+    
 
 def db_get_html_row(page):
     con = db_connect()
@@ -174,7 +189,7 @@ regularly for the stopped() condition."""
         pr_full_name = self.job.pr_full_name()
         # This will fail when running with test data, since there is the unique
         # constrain in the database.
-        db_add_build_record(pr_id, pr_number, pr_full_name)
+        db_add_build_record(pr_id, pr_number, pr_full_name, self.job.payload)
 
         # 2. Run (fake) job
         for i in range(0, random.randint(0, 5)):
@@ -229,20 +244,6 @@ class WorkerThread(threading.Thread):
             if self.jt.job.pr == pr_number:
                 log.debug("Got a stop from web PR ({})".format(pr))
                 self.jt.stop()
-
-    def force_restart(self, pr_number, pr_id=None):
-        # If there is already a job ongoing, then cancel it. Note that doing
-        # like this comes with limitations, since this could stop a job start
-        # has been started by a real pull request. This should be fixed in a
-        # nicer way in the future. One way could be to check the pr_id here also
-        # and not just the pr_number.
-        if self.jt is not None:
-            if self.jt.job.pr == pr_number:
-                log.debug("Got a stop from web PR ({})".format(pr))
-                self.jt.stop()
-
-        # TODO: Add payload!
-        self.add(pr_number)
 
     def run(self):
         """Main function taking care of running all jobs in the job queue."""
@@ -299,11 +300,18 @@ def initialize(payload):
         log.info("Initialize done!")
         initialized = True
 
-def add(payload, debug=False):
+def user_add(pr_id):
+    if pr_id is None:
+        log.error("No pr_id provided!")
+        return
+    log.debug("Got user initated add")
+    payload = db_get_payload_from_pr_id(pr_id)
+
+def add(payload, user_initiated=False, debug=False):
     initialize(payload)
 
     if payload is None:
-        l.error("Cannot add job without payload")
+        log.error("Cannot add job without payload")
         return False
 
     global gh
@@ -360,13 +368,13 @@ def load_payload_from_file(filename=None):
     return json.loads(payload)
 
 def local_run():
-    add(load_payload_from_file(), True)
+    add(load_payload_from_file(), False, True)
     time.sleep(1)
-    add(load_payload_from_file(), True)
+    add(load_payload_from_file(), False, True)
     time.sleep(1)
-    add(load_payload_from_file(), True)
+    add(load_payload_from_file(), False, True)
     time.sleep(1)
-    add(load_payload_from_file(), True)
+    add(load_payload_from_file(), False, True)
 
 if __name__ == "__main__":
     local_run()

@@ -60,9 +60,9 @@ def main_paginate(page):
     return render_template('main.html', sd=sql_data, page=page)
 
 
-@app.route('/restart/<int:pr_number>')
-def restart_page(pr_number):
-    worker.force_restart(pr_number)
+@app.route('/restart/<int:pr_id>')
+def restart_page(pr_id):
+    worker.user_add(pr_id)
     return 'OK'
 
 @app.route('/stop/<int:pr_number>')
@@ -94,7 +94,7 @@ def payload():
 
     if request.headers.get('X-GitHub-Event') == "pull_request":
         payload = request.get_json()
-        worker.add(payload)
+        worker.add(payload, False)
     return 'OK'
 
 
