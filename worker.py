@@ -24,8 +24,7 @@ def initialize_db():
         cur = con.cursor()
         sql = '''
                 CREATE TABLE job (
-                    id integer PRIMARY KEY,
-                    pr_id text NOT NULL,
+                    pr_id text PRIMARY KEY NOT NULL,
                     pr_number text NOT NULL,
                     full_name text NOT_NULL,
                     date text NOT NULL,
@@ -46,15 +45,33 @@ def db_add_build_record(pr_id, pr_number, full_name):
     con.commit()
     con.close()
 
+def db_update_job_done(pr_id, status, running_time):
+    con = db_connect()
+    cur = con.cursor()
+    sql = "UPDATE job SET status = '{}', run_time = '{}' WHERE pr_id = '{}'".format(status, running_time, pr_id)
+    log.debug(sql)
+    cur.execute(sql)
+    con.commit()
+    con.close()
+
 def db_get_html_row(page):
     con = db_connect()
     cur = con.cursor()
-    sql = "SELECT * FROM job ORDER BY id DESC LIMIT {}".format(page * 15)
+    sql = "SELECT * FROM job ORDER BY pr_id DESC LIMIT {}".format(page * 15)
     cur.execute(sql)
     r = cur.fetchall()
     con.commit()
     con.close()
     return r
+
+################################################################################
+# Utils
+################################################################################
+def get_running_time(time_start):
+    """Returns the running time on format: <hours>h:<minutes>m:<seconds>s."""
+    m, s = divmod(time.time() - time_start, 60)
+    h, m = divmod(m, 60)
+    return "{}h:{:02d}m:{:02d}s".format(int(h), int(m), int(s))
 
 ################################################################################
 # GitHub Json
@@ -124,6 +141,9 @@ class Job():
     def pr_full_name(self):
         return self.gh.pr_full_name()
 
+# TODO: Remove this debug counter!
+ctr = 0
+
 class JobThread(threading.Thread):
     """Thread class with a stop() method. The thread itself has to check
 regularly for the stopped() condition."""
@@ -144,18 +164,29 @@ regularly for the stopped() condition."""
         """This is the main function for running a complete clone, build, flash
         and test job."""
         log.debug("START Job : {}".format(self.job))
-        for i in range(0, 10):
-            time.sleep(1)
-            pr_id = self.job.pr_id()
-            pr_number = self.job.pr_number()
-            pr_full_name = self.job.pr_full_name()
+        time_start = time.time()
 
-            db_add_build_record(pr_id, pr_number, pr_full_name)
+        # 1. Insert initial record in the database
+        global ctr
+        pr_id = self.job.pr_id() + ctr
+        ctr += 1
+        pr_number = self.job.pr_number()
+        pr_full_name = self.job.pr_full_name()
+        # This will fail when running with test data, since there is the unique
+        # constrain in the database.
+        db_add_build_record(pr_id, pr_number, pr_full_name)
 
+        # 2. Run (fake) job
+        for i in range(0, random.randint(0, 5)):
+            time.sleep(random.randint(0, 2))
             if self.stopped():
                 log.debug("STOP Job : {}[{}]".format(self.job, i))
+                running_time = get_running_time(time_start)
+                db_update_job_done(pr_id, "Cancelled", running_time)
                 return
-        log.debug("END   Job : {}".format(self.job))
+        running_time = get_running_time(time_start)
+        log.debug("END   Job : {} --> {}".format(self.job, running_time))
+        db_update_job_done(pr_id, "Success", running_time)
 
 ################################################################################
 # Worker
