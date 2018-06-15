@@ -4,9 +4,46 @@ import logging as log
 import json
 import threading
 import time
+import os
 import random
+import sqlite3
 from collections import deque
 
+################################################################################
+# SQLITE3
+################################################################################
+DB_FILE = os.path.join(os.path.dirname(__file__), 'hab.db')
+
+def db_connect(db_file=DB_FILE):  
+    con = sqlite3.connect(db_file)
+    return con
+
+def initialize_db():
+    if not os.path.isfile(DB_FILE):
+        con = db_connect()
+        cur = con.cursor()
+        sql = """
+                CREATE TABLE job (
+                    id integer PRIMARY KEY,
+                    pr_id text NOT NULL,
+                    pr_number text NOT NULL,
+                    date text NOT NULL)
+              """
+        cur.execute(sql)
+        con.close()
+
+def db_add_build_record(pr_id, pr_number):
+    con = db_connect()
+    cur = con.cursor()
+    sql = "INSERT INTO job (pr_id, pr_number, date) " \
+            "VALUES({},{},datetime('now'))".format(pr_id, pr_number)
+    cur.execute(sql)
+    con.commit()
+    con.close()
+
+################################################################################
+# GitHub Json
+################################################################################
 class Singleton(type):
     instance = None
     def __call__(cls, *args, **kw):
@@ -14,9 +51,6 @@ class Singleton(type):
             cls.instance = super(Singleton, cls).__call__(*args, **kw)
         return cls.instance
 
-################################################################################
-# GitHub Json
-################################################################################
 GITHUB = "https://github.com"
 
 gh = None
@@ -59,11 +93,19 @@ def initialize_github(payload=None):
 class Job():
     """Class defining a complete Job which normally includes clone, build, flash
     and run tests on a device."""
-    def __init__(self, pr=None):
-        self.pr = pr
+    def __init__(self, pr_number, payload):
+        self.payload = payload
+        self.gh = GitHub(payload)
 
     def __str__(self):
-        return "{}".format(self.pr)
+        return "{}".format(self.pr_number())
+
+    def pr_number(self):
+        return self.gh.pr_number()
+
+    def pr_id(self):
+        return self.gh.pr_id()
+
 
 class JobThread(threading.Thread):
     """Thread class with a stop() method. The thread itself has to check
@@ -75,7 +117,7 @@ regularly for the stopped() condition."""
         self.job = job
 
     def stop(self):
-        log.debug("Stopping PR {}".format(self.job.pr))
+        log.debug("Stopping PR {}".format(self.job.pr_number()))
         self._stop_event.set()
 
     def stopped(self):
@@ -84,11 +126,10 @@ regularly for the stopped() condition."""
     def run(self):
         """This is the main function for running a complete clone, build, flash
         and test job."""
-        if self.stopped():
-            return
         log.debug("START Job : {}".format(self.job))
         for i in range(0, 10):
             time.sleep(1)
+            db_add_build_record(self.job.pr_id(), self.job.pr_number())
             if self.stopped():
                 log.debug("STOP Job : {}[{}]".format(self.job, i))
                 return
@@ -107,25 +148,28 @@ class WorkerThread(threading.Thread):
         self.args = args
         self.kwargs = kwargs
         self.q = deque()
+        self.job_dict = {}
         self.jt = None
         return
 
-    def add(self, pr, payload=None):
+    def add(self, pr_number, payload=None):
         """Responsible of adding new jobs the the job queue."""
         # Remove pending jobs affecting same PR from the queue
-        while self.q.count(pr) > 0:
-            log.debug("PR{} pending, removing it from queue".format(pr))
-            self.q.remove(pr)
+        while self.q.count(pr_number) > 0:
+            log.debug("PR{} pending, removing it from queue".format(pr_number))
+            self.q.remove(pr_number)
 
         # If the ongoing work is from the same PR, then stop that too
         if self.jt is not None:
-            if self.jt.job.pr == pr:
-                log.debug("The new/updated PR ({}) have a corresponding job running, sending stop()".format(pr))
+            if self.jt.job.pr_number() == pr_number:
+                log.debug("The new/updated PR ({}) have a corresponding job running, sending stop()".format(pr_number))
                 self.jt.stop()
 
-        # Finally add the new/updated PR to the queue
-        self.q.append(pr)
-        log.info("Added PR{}".format(pr))
+        # Finally add the new/updated PR to the queue (PR number to the queue
+        # and store the corresponding payload in a dictionary).
+        self.job_dict[pr_number] = payload
+        self.q.append(pr_number)
+        log.info("Added PR{}".format(pr_number))
 
     def cancel(self, pr_number):
         if self.jt is not None:
@@ -155,8 +199,9 @@ class WorkerThread(threading.Thread):
 
             if len(self.q) > 0:
                 pr = self.q.popleft()
+                payload = self.job_dict[pr]
                 log.debug("Handling job: {}".format(pr))
-                self.jt = JobThread(Job(pr))
+                self.jt = JobThread(Job(pr, payload))
                 self.jt.start()
                 self.jt.join()
                 self.jt = None
@@ -197,6 +242,7 @@ def initialize(payload):
         initialize_logger()
         initialize_worker_thread()
         initialize_github(payload)
+        initialize_db()
         log.info("Initialize done!")
         initialized = True
 
