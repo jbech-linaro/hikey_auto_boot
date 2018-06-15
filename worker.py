@@ -1,11 +1,61 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import logging as l
+import logging as log
+import json
 import threading
 import time
 import random
 from collections import deque
 
+class Singleton(type):
+    instance = None
+    def __call__(cls, *args, **kw):
+        if not cls.instance:
+            cls.instance = super(Singleton, cls).__call__(*args, **kw)
+        return cls.instance
+
+################################################################################
+# GitHub Json
+################################################################################
+GITHUB = "https://github.com"
+
+gh = None
+class GitHub(metaclass=Singleton):
+    def __init__(self, payload):
+        self._payload = payload # JSON payload
+
+    def pr_id(self):
+        """Returns the ID of the GitHub job."""
+        return self._payload['pull_request']['id']
+
+    def pr_number(self):
+        """Returns the pull request number."""
+        return self._payload['number']
+
+    def pr_sha1(self):
+        """Returns the commit hash (the SHA-1)."""
+        return self._payload['pull_request']['head']['sha']
+
+    def pr_clone_url(self):
+        """Returns full URL to the committers own project."""
+        return self._payload['pull_request']['head']['repo']['clone_url']
+
+    def pr_name(self):
+        """Returns the name (ex. optee_os) of the Git project."""
+        return self._payload['repository']['name']
+
+    def pr_full_name(self):
+        """Returns the full name (ex. OP-TEE/optee_os) of the Git project."""
+        return self._payload['repository']['full_name']
+
+def initialize_github(payload=None):
+    global gh
+    if payload is not None:
+        gh = GitHub(payload)
+
+################################################################################
+# Jobs
+################################################################################
 class Job():
     """Class defining a complete Job which normally includes clone, build, flash
     and run tests on a device."""
@@ -25,7 +75,7 @@ regularly for the stopped() condition."""
         self.job = job
 
     def stop(self):
-        l.info("Stopping PR {}".format(self.job.pr))
+        log.debug("Stopping PR {}".format(self.job.pr))
         self._stop_event.set()
 
     def stopped(self):
@@ -36,22 +86,13 @@ regularly for the stopped() condition."""
         and test job."""
         if self.stopped():
             return
-        l.info("Job {} running!".format(self.job))
+        log.debug("START Job : {}".format(self.job))
         time.sleep(3)
-        if self.stopped():
-            l.info("Job {} has been requsted to stop the work!".format(self.job))
-            return
-        time.sleep(3)
-        if self.stopped():
-            l.info("Job {} has been requsted to stop the work!".format(self.job))
-            return
-        time.sleep(3)
-        if self.stopped():
-            l.info("Job {} has been requsted to stop the work!".format(self.job))
-            return
-        time.sleep(3)
-        l.info("Done with Job {}!".format(self.job))
+        log.debug("END   Job : {}".format(self.job))
 
+################################################################################
+# Worker
+################################################################################
 worker_thread = None
 
 class WorkerThread(threading.Thread):
@@ -65,32 +106,32 @@ class WorkerThread(threading.Thread):
         self.jt = None
         return
 
-    def add(self, pr):
+    def add(self, pr, payload=None):
         """Responsible of adding new jobs the the job queue."""
         # Remove pending jobs affecting same PR from the queue
         while self.q.count(pr) > 0:
-            l.debug("PR{} pending, removing it from queue".format(pr))
+            log.debug("PR{} pending, removing it from queue".format(pr))
             self.q.remove(pr)
 
         # If the ongoing work is from the same PR, then stop that too
         if self.jt is not None:
             if self.jt.job.pr == pr:
-                l.info("The new/updated PR ({}) have a corresponding job running, sending stop()".format(pr))
+                log.debug("The new/updated PR ({}) have a corresponding job running, sending stop()".format(pr))
                 self.jt.stop()
 
         # Finally add the new/updated PR to the queue
         self.q.append(pr)
-        l.info("Added PR{}".format(pr))
+        log.info("Added PR{}".format(pr))
 
     def run(self):
         """Main function taking care of running all jobs in the job queue."""
         while(True):
             time.sleep(1)
-            l.info("Checking for work (q:{})".format(self.q))
+            log.debug("Checking for work (q:{})".format(self.q))
 
             if len(self.q) > 0:
                 pr = self.q.popleft()
-                l.info("Handling job: {}".format(pr))
+                log.debug("Handling job: {}".format(pr))
                 self.jt = JobThread(Job(pr))
                 self.jt.start()
                 self.jt.join()
@@ -107,18 +148,32 @@ def initialize_worker_thread():
     worker_thread = WorkerThread()
     worker_thread.setDaemon(True)
     worker_thread.start()
-    l.info("Worker thread has been started")
+    log.info("Worker thread has been started")
 
-def test():
+################################################################################
+# Logger
+################################################################################
+def initialize_logger():
     LOG_FMT = "[%(levelname)s] %(filename)-16s%(funcName)s():%(lineno)d # %(message)s"
-    l.basicConfig(#filename=cfg.core_log,
-        level = l.DEBUG,
+    log.basicConfig(#filename=cfg.core_log,
+        level = log.DEBUG,
         format = LOG_FMT,
         filemode = 'w')
-    l.info("Runnint test")
 
-    initialize_worker_thread()
 
+################################################################################
+# Main
+################################################################################
+initialized = False
+
+def initialize(payload):
+    if not initialized:
+        initialize_logger()
+        initialize_worker_thread()
+        initialize_github(payload)
+        log.info("Initialize done!")
+
+def debug_test():
     for j in range(0, 5):
         worker_thread.add(5)
 
@@ -127,9 +182,29 @@ def test():
         worker_thread.add(pr)
         time.sleep(random.randint(1, 2))
 
-    # Wait forever
-    worker_thread.join()
-    l.info("Bailing out")
+def add(payload=None):
+    initialize(payload)
+
+    # This is basically just for testing
+    if payload is None:
+        debug_test()
+    else:
+        global gh
+        pr = gh.pr_number()
+        worker_thread.add(pr, payload)
+
+def local_run():
+    payload = None
+    with open('last_blob.json', 'r') as f:
+        payload = f.read()
+    add(json.loads(payload))
+    time.sleep(1)
+    add(json.loads(payload))
+    time.sleep(1)
+    add(json.loads(payload))
+    time.sleep(1)
+    add(json.loads(payload))
 
 if __name__ == "__main__":
-    test()
+    local_run()
+    worker_thread.join()

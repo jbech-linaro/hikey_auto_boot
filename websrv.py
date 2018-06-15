@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 from flask import Flask, render_template, request, redirect, url_for, jsonify
-import json
-import hmac
 import hashlib
+import hmac
+import json
+import logging as log
 import os
 import sys
 
 # Local imports
 from dbg import pr
 import cfg
-import gitcmd
 import logger
-import runner
+import worker
 
 app = Flask(__name__)
 
@@ -28,10 +28,9 @@ def verify_hmac_hash(data, signature):
 
 def dump_json_blob_to_file(request, filename="last_blob.json"):
     """ Debug function to dump the last json blob to file """
-    f = open(filename, 'w')
-    payload = request.get_json()
-    json.dump(payload, f, indent=4)
-    f.close()
+    with open(filename, 'w') as f:
+        payload = request.get_json()
+        json.dump(payload, f, indent=4)
 
 def read_log(git_name, github_nbr, filename):
     log_file_dir = "{}/logs/{name}/{nbr}".format(os.getcwd(),
@@ -58,12 +57,12 @@ def main_page():
 
 @app.route('/start')
 def start_page():
-    runner.test_job_start()
+    worker.test_job_start()
     return 'OK'
 
 @app.route('/stop')
 def stop_page():
-    runner.test_job_stop()
+    worker.test_job_stop()
     return 'OK'
 
 @app.route('/<git_name>/<int:github_nbr>')
@@ -90,7 +89,7 @@ def payload():
 
     if request.headers.get('X-GitHub-Event') == "pull_request":
         payload = request.get_json()
-        runner.add_job(payload)
+        worker.add(payload)
     return 'OK'
 
 
