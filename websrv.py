@@ -57,7 +57,7 @@ def main_page():
 
 @app.route('/start')
 def start_page():
-    worker.test_job_start()
+    worker.force_start()
     return 'OK'
 
 @app.route('/stop')

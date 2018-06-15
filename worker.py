@@ -88,7 +88,7 @@ regularly for the stopped() condition."""
             return
         log.debug("START Job : {}".format(self.job))
         for i in range(0, 10):
-            time.sleep(3)
+            time.sleep(1)
             if self.stopped():
                 log.debug("STOP Job : {}[{}]".format(self.job, i))
                 return
@@ -127,16 +127,30 @@ class WorkerThread(threading.Thread):
         self.q.append(pr)
         log.info("Added PR{}".format(pr))
 
-    def cancel(self, pr):
+    def cancel(self, pr_number):
         if self.jt is not None:
-            if self.jt.job.pr == pr:
+            if self.jt.job.pr == pr_number:
                 log.debug("Got a stop from web PR ({})".format(pr))
                 self.jt.stop()
+
+    def force_start(self, pr_number, pr_id):
+        # If there is already a job ongoing, then cancel it. Note that doing
+        # like this comes with limitations, since this could stop a job start
+        # has been started by a real pull request. This should be fixed in a
+        # nicer way in the future. One way could be to check the pr_id here also
+        # and not just the pr_number.
+        if self.jt is not None:
+            if self.jt.job.pr == pr_number:
+                log.debug("Got a stop from web PR ({})".format(pr))
+                self.jt.stop()
+
+        # TODO: Add payload!
+        self.add(pr_number)
 
     def run(self):
         """Main function taking care of running all jobs in the job queue."""
         while(True):
-            time.sleep(1)
+            time.sleep(3)
             log.debug("Checking for work (q:{})".format(self.q))
 
             if len(self.q) > 0:
@@ -177,22 +191,32 @@ def initialize_logger():
 initialized = False
 
 def initialize(payload):
+    global initialized
+
     if not initialized:
         initialize_logger()
         initialize_worker_thread()
         initialize_github(payload)
         log.info("Initialize done!")
+        initialized = True
 
-def add(payload=None):
+def add(payload, debug=False):
     initialize(payload)
 
-    # This is basically just for testing
     if payload is None:
-        debug_test()
+        l.error("Cannot add job without payload")
+        return False
+
+    global gh
+    pr = gh.pr_number()
+
+    # This is basically just for testing
+    if debug:
+        log.debug("Add debug job")
+        debug_test(pr, payload)
     else:
-        global gh
-        pr = gh.pr_number()
         worker_thread.add(pr, payload)
+    return True
 
 def cancel(pr):
     if pr is None:
@@ -205,26 +229,37 @@ def cancel(pr):
 ################################################################################
 # Debug
 ################################################################################
-def debug_test():
+def debug_test(pr_number, payload):
     for j in range(0, 5):
-        worker_thread.add(5)
+        worker_thread.add(pr_number, payload)
 
     while (True):
-        pr = random.randint(1, 10)
-        worker_thread.add(pr)
+        pr = random.randint(0, 5)
+        worker_thread.add(pr_number + pr, payload)
         time.sleep(random.randint(1, 2))
 
-def local_run():
+def load_payload_from_file(filename=None):
+    fname = 'last_blob.json'
     payload = None
+
+    if filename is not None:
+        fname = filename
+
     with open('last_blob.json', 'r') as f:
         payload = f.read()
-    add(json.loads(payload))
+
+    # Convert it back to the same format as we get from websrv.py (from human
+    # readable to Python data structure).
+    return json.loads(payload)
+
+def local_run():
+    add(load_payload_from_file(), True)
     time.sleep(1)
-    add(json.loads(payload))
+    add(load_payload_from_file(), True)
     time.sleep(1)
-    add(json.loads(payload))
+    add(load_payload_from_file(), True)
     time.sleep(1)
-    add(json.loads(payload))
+    add(load_payload_from_file(), True)
 
 if __name__ == "__main__":
     local_run()
