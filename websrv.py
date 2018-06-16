@@ -94,7 +94,7 @@ def payload():
 
     if request.headers.get('X-GitHub-Event') == "pull_request":
         payload = request.get_json()
-        worker.add(payload, False)
+        worker.add(payload)
     return 'OK'
 
 

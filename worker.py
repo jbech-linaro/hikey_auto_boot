@@ -9,6 +9,8 @@ import random
 import sqlite3
 from collections import deque
 
+import github
+
 ################################################################################
 # SQLITE3
 ################################################################################
@@ -89,72 +91,30 @@ def get_running_time(time_start):
     return "{}h:{:02d}m:{:02d}s".format(int(h), int(m), int(s))
 
 ################################################################################
-# GitHub Json
-################################################################################
-class Singleton(type):
-    instance = None
-    def __call__(cls, *args, **kw):
-        if not cls.instance:
-            cls.instance = super(Singleton, cls).__call__(*args, **kw)
-        return cls.instance
-
-GITHUB = "https://github.com"
-
-gh = None
-class GitHub(metaclass=Singleton):
-    def __init__(self, payload):
-        self._payload = payload # JSON payload
-
-    def pr_id(self):
-        """Returns the ID of the GitHub job."""
-        return self._payload['pull_request']['id']
-
-    def pr_number(self):
-        """Returns the pull request number."""
-        return self._payload['number']
-
-    def pr_sha1(self):
-        """Returns the commit hash (the SHA-1)."""
-        return self._payload['pull_request']['head']['sha']
-
-    def pr_clone_url(self):
-        """Returns full URL to the committers own project."""
-        return self._payload['pull_request']['head']['repo']['clone_url']
-
-    def pr_name(self):
-        """Returns the name (ex. optee_os) of the Git project."""
-        return self._payload['repository']['name']
-
-    def pr_full_name(self):
-        """Returns the full name (ex. OP-TEE/optee_os) of the Git project."""
-        return self._payload['repository']['full_name']
-
-def initialize_github(payload=None):
-    global gh
-    if payload is not None:
-        gh = GitHub(payload)
-
-################################################################################
 # Jobs
 ################################################################################
 class Job():
     """Class defining a complete Job which normally includes clone, build, flash
     and run tests on a device."""
-    def __init__(self, pr_number, payload):
+    def __init__(self, payload, user_initiated=False):
         self.payload = payload
-        self.gh = GitHub(payload)
+        self.user_initiated = user_initiated
+        self.status = "Pending"
 
     def __str__(self):
-        return "{}".format(self.pr_number())
+        return "{}:{}/{}".format(
+                self.pr_id(),
+                self.pr_full_name(),
+                self.pr_number())
 
     def pr_number(self):
-        return self.gh.pr_number()
+        return github.pr_number(self.payload)
 
     def pr_id(self):
-        return self.gh.pr_id()
+        return github.pr_id(self.payload)
 
     def pr_full_name(self):
-        return self.gh.pr_full_name()
+        return github.pr_full_name(self.payload)
 
 # TODO: Remove this debug counter!
 ctr = 0
@@ -215,29 +175,47 @@ class WorkerThread(threading.Thread):
         threading.Thread.__init__(self, group=group, target=target, name=name)
         self.args = args
         self.kwargs = kwargs
-        self.q = deque()
+        self.q = []
         self.job_dict = {}
         self.jt = None
-        return
+        self.lock = threading.Lock()
 
-    def add(self, pr_number, payload=None):
+    def user_add(self, pr_id):
+        if pr_id is None:
+            log.error("Missing pr_id when trying to submit user job")
+            return
+
+        with self.lock:
+            log.debug("Got user initated add")
+            payload = db_get_payload_from_pr_id(pr_id)
+            if payload is None:
+                log.error("Didn't find payload for ID:{}".format(pr_id))
+                return
+
+            self.q.append(pr_id)
+            self.job_dict[pr_id] = Job(payload, True)
+
+    def add(self, payload):
         """Responsible of adding new jobs the the job queue."""
-        # Remove pending jobs affecting same PR from the queue
-        while self.q.count(pr_number) > 0:
-            log.debug("PR{} pending, removing it from queue".format(pr_number))
-            self.q.remove(pr_number)
+        if payload is None:
+            log.error("Missing payload when trying to add job")
+            return
 
-        # If the ongoing work is from the same PR, then stop that too
-        if self.jt is not None:
-            if self.jt.job.pr_number() == pr_number:
-                log.debug("The new/updated PR ({}) have a corresponding job running, sending stop()".format(pr_number))
-                self.jt.stop()
+        pr_id = github.pr_id(payload)
+        pr_number = github.pr_number(payload)
 
-        # Finally add the new/updated PR to the queue (PR number to the queue
-        # and store the corresponding payload in a dictionary).
-        self.job_dict[pr_number] = payload
-        self.q.append(pr_number)
-        log.info("Added PR{}".format(pr_number))
+        with self.lock:
+            log.debug("Got GitHub initated add")
+            for i, elem in enumerate(self.q):
+                job_in_queue = self.job_dict[elem]
+                # Remove existing jobs as long as they are not user initiated
+                # jobs.
+                if (job_in_queue.pr_number() == pr_number):
+                    if not job_in_queue.user_initiated:
+                        log.debug("Non user initiated job found in queue, removing {}".format(elem))
+                        del self.q[i]
+            self.q.append(pr_id)
+            self.job_dict[pr_id] = Job(payload, False)
 
     def cancel(self, pr_number):
         if self.jt is not None:
@@ -249,13 +227,14 @@ class WorkerThread(threading.Thread):
         """Main function taking care of running all jobs in the job queue."""
         while(True):
             time.sleep(3)
-            log.debug("Checking for work (q:{})".format(self.q))
+            log.debug("Checking for work (queue:{})".format(self.q))
 
             if len(self.q) > 0:
-                pr = self.q.popleft()
-                payload = self.job_dict[pr]
-                log.debug("Handling job: {}".format(pr))
-                self.jt = JobThread(Job(pr, payload))
+                with self.lock:
+                    pr_id = self.q.pop(0)
+                    job = self.job_dict[pr_id]
+                log.debug("Handling job: {}".format(pr_id))
+                self.jt = JobThread(job)
                 self.jt.start()
                 self.jt.join()
                 self.jt = None
@@ -289,40 +268,27 @@ def initialize_logger():
 ################################################################################
 initialized = False
 
-def initialize(payload):
+def initialize():
     global initialized
 
     if not initialized:
         initialize_logger()
         initialize_worker_thread()
-        initialize_github(payload)
         initialize_db()
         log.info("Initialize done!")
         initialized = True
 
 def user_add(pr_id):
-    if pr_id is None:
-        log.error("No pr_id provided!")
-        return
-    log.debug("Got user initated add")
-    payload = db_get_payload_from_pr_id(pr_id)
+    worker_thread.user_add(pr_id)
 
-def add(payload, user_initiated=False, debug=False):
-    initialize(payload)
+def add(payload):
+    initialize()
 
     if payload is None:
         log.error("Cannot add job without payload")
         return False
 
-    global gh
-    pr = gh.pr_number()
-
-    # This is basically just for testing
-    if debug:
-        log.debug("Add debug job")
-        debug_test(pr, payload)
-    else:
-        worker_thread.add(pr, payload)
+    worker_thread.add(payload)
     return True
 
 def cancel(pr_number):
@@ -333,26 +299,9 @@ def cancel(pr_number):
     else:
         worker_thread.cancel(pr_number)
 
-def force_restart(pr_number):
-    if pr_number is None:
-        log.error("Trying to stop a job without a PR number")
-    elif worker_thread is None:
-        log.error("Threads are not initialized")
-    else:
-        worker_thread.force_restart(pr_number)
-
 ################################################################################
 # Debug
 ################################################################################
-def debug_test(pr_number, payload):
-    for j in range(0, 5):
-        worker_thread.add(pr_number, payload)
-
-    while (True):
-        pr = random.randint(0, 5)
-        worker_thread.add(pr_number + pr, payload)
-        time.sleep(random.randint(1, 2))
-
 def load_payload_from_file(filename=None):
     fname = 'last_blob.json'
     payload = None
@@ -368,13 +317,7 @@ def load_payload_from_file(filename=None):
     return json.loads(payload)
 
 def local_run():
-    add(load_payload_from_file(), False, True)
-    time.sleep(1)
-    add(load_payload_from_file(), False, True)
-    time.sleep(1)
-    add(load_payload_from_file(), False, True)
-    time.sleep(1)
-    add(load_payload_from_file(), False, True)
+    add(load_payload_from_file())
 
 if __name__ == "__main__":
     local_run()
