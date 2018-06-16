@@ -30,7 +30,7 @@ def initialize_db():
                     pr_number text NOT NULL,
                     full_name text NOT_NULL,
                     date text NOT NULL,
-                    run_time text DEFAULT "00:00",
+                    run_time text DEFAULT "N/A",
                     status text DEFAULT Pending,
                     payload text NOT NULL)
               '''
@@ -40,6 +40,16 @@ def initialize_db():
 def db_add_build_record(pr_id, pr_number, full_name, payload):
     con = db_connect()
     cur = con.cursor()
+    sql = "SELECT pr_id FROM job WHERE pr_id = '{}'".format(pr_id)
+    cur.execute(sql)
+    r = cur.fetchall()
+    if len(r) >= 1:
+        log.debug("Record for pr_id {} is already in the "
+                "database".format(pr_id))
+        con.commit()
+        con.close()
+        return
+
     sql = "INSERT INTO job (pr_id, pr_number, full_name, date, payload) " + \
             "VALUES('{}','{}','{}',datetime('now'), '{}')".format(
                     pr_id, pr_number, full_name, json.dumps(payload))
@@ -47,7 +57,7 @@ def db_add_build_record(pr_id, pr_number, full_name, payload):
     con.commit()
     con.close()
 
-def db_update_job_done(pr_id, status, running_time):
+def db_update_job(pr_id, status, running_time):
     con = db_connect()
     cur = con.cursor()
     sql = "UPDATE job SET status = '{}', run_time = '{}' WHERE pr_id = '{}'".format(status, running_time, pr_id)
@@ -67,7 +77,6 @@ def db_get_payload_from_pr_id(pr_id):
         return -1
     con.commit()
     con.close()
-    print(r)
     return json.loads("".join(r[0]))
     
 
@@ -116,9 +125,6 @@ class Job():
     def pr_full_name(self):
         return github.pr_full_name(self.payload)
 
-# TODO: Remove this debug counter!
-ctr = 0
-
 class JobThread(threading.Thread):
     """Thread class with a stop() method. The thread itself has to check
 regularly for the stopped() condition."""
@@ -142,26 +148,25 @@ regularly for the stopped() condition."""
         time_start = time.time()
 
         # 1. Insert initial record in the database
-        global ctr
-        pr_id = self.job.pr_id() + ctr
-        ctr += 1
+        pr_id = self.job.pr_id()
         pr_number = self.job.pr_number()
         pr_full_name = self.job.pr_full_name()
         # This will fail when running with test data, since there is the unique
         # constrain in the database.
         db_add_build_record(pr_id, pr_number, pr_full_name, self.job.payload)
+        db_update_job(pr_id, "Pending", "N/A")
 
         # 2. Run (fake) job
         for i in range(0, random.randint(0, 5)):
-            time.sleep(random.randint(0, 2))
+            time.sleep(random.randint(0, 10))
             if self.stopped():
                 log.debug("STOP Job : {}[{}]".format(self.job, i))
                 running_time = get_running_time(time_start)
-                db_update_job_done(pr_id, "Cancelled", running_time)
+                db_update_job(pr_id, "Cancelled", running_time)
                 return
         running_time = get_running_time(time_start)
         log.debug("END   Job : {} --> {}".format(self.job, running_time))
-        db_update_job_done(pr_id, "Success", running_time)
+        db_update_job(pr_id, "Success", running_time)
 
 ################################################################################
 # Worker
@@ -279,6 +284,7 @@ def initialize():
         initialized = True
 
 def user_add(pr_id):
+    initialize()
     worker_thread.user_add(pr_id)
 
 def add(payload):
