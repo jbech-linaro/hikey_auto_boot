@@ -6,10 +6,20 @@ import threading
 import time
 import os
 import random
+import signal
 import sqlite3
-from collections import deque
+import sys
 
 import github
+
+################################################################################
+# Sigint
+################################################################################
+def signal_handler(signal, frame):
+    log.debug("Gracefully killed!")
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
 
 ################################################################################
 # SQLITE3
@@ -191,7 +201,7 @@ class WorkerThread(threading.Thread):
             return
 
         with self.lock:
-            log.debug("Got user initated add")
+            log.debug("Got user initated add {}".format(pr_id))
             payload = db_get_payload_from_pr_id(pr_id)
             if payload is None:
                 log.error("Didn't find payload for ID:{}".format(pr_id))
@@ -222,10 +232,10 @@ class WorkerThread(threading.Thread):
             self.q.append(pr_id)
             self.job_dict[pr_id] = Job(payload, False)
 
-    def cancel(self, pr_number):
+    def cancel(self, pr_id):
         if self.jt is not None:
-            if self.jt.job.pr == pr_number:
-                log.debug("Got a stop from web PR ({})".format(pr))
+            if self.jt.job.pr_id() == pr_id:
+                log.debug("Got a stop from web PR ({})".format(pr_id))
                 self.jt.stop()
 
     def run(self):

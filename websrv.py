@@ -65,9 +65,9 @@ def restart_page(pr_id):
     worker.user_add(pr_id)
     return 'OK'
 
-@app.route('/stop/<int:pr_number>')
-def stop_page(pr_number):
-    worker.cancel(pr_number)
+@app.route('/stop/<int:pr_id>')
+def stop_page(pr_id):
+    worker.cancel(pr_id)
     return 'OK'
 
 @app.route('/<git_name>/<int:github_nbr>')
