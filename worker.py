@@ -25,23 +25,50 @@ signal.signal(signal.SIGINT, signal_handler)
 ################################################################################
 # SQLITE3
 ################################################################################
-class LogState(Enum):
-    PRE_CLONE = 0
-    CLONE = 1
-    POST_CLONE = 2
-    PRE_BUILD = 3
-    BUILD = 4
-    POST_BUILD = 5
-    PRE_FLASH = 6
-    FLASH = 7
-    POST_FLASH = 8
-    PRE_BOOT = 9
-    BOOT = 10
-    POST_BOOT = 11
-    PRE_TEST = 12
-    TEST = 13
-    POST_TEST = 14 
+class LogType(Enum):
+    PRE_CLONE =     0
+    CLONE =         1
+    POST_CLONE =    2
+    PRE_BUILD =     3
+    BUILD =         4
+    POST_BUILD =    5
+    PRE_FLASH =     6
+    FLASH =         7
+    POST_FLASH =    8
+    PRE_BOOT =      9
+    BOOT =          10
+    POST_BOOT =     11
+    PRE_TEST =      12
+    TEST =          13
+    POST_TEST =     14
 
+# This must stay in sync with class LogType above!
+# TODO: Should probably replace with a dict instead!
+logstr = [
+    "pre_clone",
+    "clone",
+    "post_clone",
+
+    "pre_build",
+    "build",
+    "post_build",
+
+    "pre_flash",
+    "flash",
+    "post_flash",
+
+    "pre_boot",
+    "boot",
+    "post_boot",
+
+    "pre_test",
+    "test",
+    "post_test" ]
+
+def logstate_to_str(s):
+    """Getting the string corresponding to the value in the database."""
+    global logstr
+    return logstr[s.value]
 
 #-------------------------------------------------------------------------------
 # DB LOG
@@ -59,15 +86,20 @@ def db_add_log(pr_id, pr_sha1, logtype, data):
 
     con = db_connect_log()
     cur = con.cursor()
+
+    # We have no clue whether it's a new log of just an update, therefore query
+    # the database to see whether there already is something matching.
     sql = "SELECT pr_id_sha1 FROM log WHERE pr_id_sha1 = '{}-{}'".format(pr_id, pr_sha1)
     cur.execute(sql)
     r = cur.fetchall()
 
+    # No match, i.e., new record
     if len(r) == 0:
-        sql = "INSERT INTO log (pr_id_sha1, {}) ".format(logtype) + \
+        sql = "INSERT INTO log (pr_id_sha1, {}) ".format(logstate_to_str(logtype)) + \
                 "VALUES('{}-{}', '{}')".format(pr_id, pr_sha1, data)
     elif len(r) == 1:
-        sql = "UPDATE log SET pr_id_sha1 = '{}-{}', {} = '{}'".format(pr_id, pr_sha1, logtype, data) + \
+        sql = "UPDATE log SET pr_id_sha1 = '{}-{}', {} = '{}' ".format(
+                pr_id, pr_sha1, logstate_to_str(logtype), data) + \
                 "WHERE pr_id_sha1 = '{}-{}'".format(pr_id, pr_sha1)
     else:
         log.error("Cannot store log")
@@ -272,19 +304,10 @@ regularly for the stopped() condition."""
         db_update_job(pr_id, pr_sha1, "Running", "N/A")
 
         # 2. Run (fake) job
-        states = ["clone", "build", "flash", "boot", "test"]
+        states = [ LogType.CLONE, LogType.BUILD, LogType.FLASH, LogType.BOOT, LogType.TEST ]
         for s in states:
-            if s == "clone":
-                db_add_log(pr_id, pr_sha1, s, "This is my log from cloning.")
-            elif s == "build":
-                db_add_log(pr_id, pr_sha1, s, "This is my log from build.")
-            elif s == "flash":
-                db_add_log(pr_id, pr_sha1, s, "This is my log from flash.")
-            elif s == "run":
-                db_add_log(pr_id, pr_sha1, s, "This is my log from run.")
-            elif s == "test":
-                db_add_log(pr_id, pr_sha1, s, "This is my log from test.")
-            time.sleep(random.randint(0, 10))
+            db_add_log(pr_id, pr_sha1, s, "This is my log from {}.".format(logstate_to_str(s)))
+            time.sleep(random.randint(0, 3))
             if self.stopped():
                 log.debug("STOP Job : {}[{}]".format(self.job, i))
                 running_time = get_running_time(time_start)
