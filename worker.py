@@ -331,7 +331,7 @@ regularly for the stopped() condition."""
             db_add_log(pr_id, pr_sha1, s, "This is my log from {}.".format(logstate_to_str(s)))
             time.sleep(random.randint(0, 3))
             if self.stopped():
-                log.debug("STOP Job : {}[{}]".format(self.job, i))
+                log.debug("STOP Job : {}".format(self.job))
                 running_time = get_running_time(time_start)
                 db_update_job(pr_id, pr_sha1, "Cancelled(R)", running_time)
                 return
@@ -368,8 +368,9 @@ class WorkerThread(threading.Thread):
                 log.error("Didn't find payload for ID:{}".format(pr_id))
                 return
 
-            self.q.append(pr_id)
-            self.job_dict[pr_id] = Job(payload, True)
+            pr_id_sha1 = "{}-{}".format(pr_id, pr_sha1)
+            self.q.append(pr_id_sha1)
+            self.job_dict[pr_id_sha1] = Job(payload, True)
             db_update_job(pr_id, pr_sha1, "Pending", "N/A")
 
     def add(self, payload):
