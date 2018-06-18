@@ -278,8 +278,9 @@ class Job():
         self.status = "Pending"
 
     def __str__(self):
-        return "{}:{}/{}".format(
+        return "{}-{}:{}/{}".format(
                 self.pr_id(),
+                self.pr_sha1(),
                 self.pr_full_name(),
                 self.pr_number())
 
@@ -329,8 +330,9 @@ regularly for the stopped() condition."""
         states = [ LogType.CLONE, LogType.BUILD, LogType.FLASH, LogType.BOOT, LogType.TEST ]
         for s in states:
             db_add_log(pr_id, pr_sha1, s, "This is my log from {}.".format(logstate_to_str(s)))
-            for i in range(0, 1000):
+            for i in range(0, 12):
                 time.sleep(random.randint(0, 5))
+                log.debug("Running Job : {}[{}] \nqueue -> {}".format(self.job, i, worker_thread.q))
                 if self.stopped():
                     log.debug("STOP Job : {}".format(self.job))
                     running_time = get_running_time(time_start)
@@ -396,6 +398,7 @@ class WorkerThread(threading.Thread):
                     if not job_in_queue.user_initiated:
                         log.debug("Non user initiated job found in queue, removing {}".format(elem))
                         del self.q[i]
+                        db_update_job(job_in_queue.pr_id(), job_in_queue.pr_sha1(), "Cancelled(Q)", "N/A")
 
             # Check whether current job also should be stopped (i.e, same
             # PR, but _not_ user initiated).
