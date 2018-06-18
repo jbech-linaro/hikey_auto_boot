@@ -28,7 +28,10 @@
 	    margin: auto;
 	}
 
-	td, th { border: 1px solid #CCC; height: 30px; } /* Make cells a bit taller */
+	td, th { border: 1px solid #CCC;
+		 height: 30px; /* Make cells a bit taller */
+		 font-size:13;
+	}
 
 	th {
 	    background: #F3F3F3; /* Light grey background */
@@ -57,7 +60,7 @@
 	  {% for l in sd %}
 	  <tr>
 		  <td>{{ l[1] }}</td>
-		  <td>{{ l[4]|truncate(12) }}</td>
+		  <td><a href="https://github.com/{{ l[3] }}/commit/{{ l[4] }}">{{ l[4]|truncate(12) }}</a></td>
 		  <td><a href="https://github.com/{{ l[3] }}">{{ l[3] }}</a></td>
 		  <td><a href="https://github.com/{{ l[3] }}/pull/{{ l[2] }}">{{ l[2] }}</a></td>
 		  <td>{{ l[5] }}</td>

@@ -64,7 +64,6 @@ def db_add_build_record(payload):
     sql = "SELECT pr_id FROM job WHERE pr_id = '{}' AND sha1 = '{}'".format(pr_id, pr_sha1)
     cur.execute(sql)
     r = cur.fetchall()
-    log.debug(r)
     if len(r) >= 1:
         log.debug("Record for pr_id/sha1 {}/{} is already in the "
                 "database".format(pr_id, pr_sha1))
@@ -87,7 +86,6 @@ def db_update_job(pr_id, pr_sha1, status, running_time):
     cur = con.cursor()
     sql = "UPDATE job SET status = '{}', run_time = '{}', date = datetime('now') WHERE pr_id = '{}' AND sha1 = '{}'".format(
                     status, running_time, pr_id, pr_sha1)
-    log.debug(sql)
     cur.execute(sql)
     con.commit()
     con.close()
@@ -185,7 +183,7 @@ regularly for the stopped() condition."""
         db_update_job(pr_id, pr_sha1, "Running", "N/A")
 
         # 2. Run (fake) job
-        for i in range(0, random.randint(0, 5)):
+        for i in range(0, random.randint(0, 1000)):
             time.sleep(random.randint(0, 10))
             if self.stopped():
                 log.debug("STOP Job : {}[{}]".format(self.job, i))
@@ -219,7 +217,7 @@ class WorkerThread(threading.Thread):
             return
 
         with self.lock:
-            log.debug("Got user initated add {}/{}".format(pr_id, pr_sha1))
+            log.info("Got user initiated add {}/{}".format(pr_id, pr_sha1))
             payload = db_get_payload_from_pr_id(pr_id, pr_sha1)
             if payload is None:
                 log.error("Didn't find payload for ID:{}".format(pr_id))
@@ -237,9 +235,10 @@ class WorkerThread(threading.Thread):
 
         pr_id = github.pr_id(payload)
         pr_number = github.pr_number(payload)
+        pr_sha1 = github.pr_sha1(payload)
 
         with self.lock:
-            log.debug("Got GitHub initated add")
+            log.info("Got GitHub initiated add {}/{} --> PR#{}".format(pr_id, pr_sha1, pr_number))
             for i, elem in enumerate(self.q):
                 job_in_queue = self.job_dict[elem]
                 # Remove existing jobs as long as they are not user initiated
