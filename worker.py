@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import logging as log
+from enum import Enum
 import json
-import threading
-import time
+import logging as log
 import os
 import random
 import signal
 import sqlite3
 import sys
+import threading
+import time
 
 import github
 
@@ -24,14 +25,69 @@ signal.signal(signal.SIGINT, signal_handler)
 ################################################################################
 # SQLITE3
 ################################################################################
-DB_FILE = os.path.join(os.path.dirname(__file__), 'hab.db')
+class LogState(Enum):
+    PRE_CLONE = 0
+    CLONE = 1
+    POST_CLONE = 2
+    PRE_BUILD = 3
+    BUILD = 4
+    POST_BUILD = 5
+    PRE_FLASH = 6
+    FLASH = 7
+    POST_FLASH = 8
+    PRE_BOOT = 9
+    BOOT = 10
+    POST_BOOT = 11
+    PRE_TEST = 12
+    TEST = 13
+    POST_TEST = 14 
 
-def db_connect(db_file=DB_FILE):  
+
+#-------------------------------------------------------------------------------
+# DB LOG
+#-------------------------------------------------------------------------------
+DB_LOG_FILE = os.path.join(os.path.dirname(__file__), 'logs.db')
+
+def db_connect_log(db_file=DB_LOG_FILE):
     con = sqlite3.connect(db_file)
     return con
 
+def db_add_log(pr_id, pr_sha1, logtype, data):
+    if pr_id == 0 or pr_sha1 == 0:
+        log.error("Trying to add log with no pr_id or pr_sha1!")
+        return
+
+    con = db_connect_log()
+    cur = con.cursor()
+    sql = "SELECT pr_id_sha1 FROM log WHERE pr_id_sha1 = '{}-{}'".format(pr_id, pr_sha1)
+    cur.execute(sql)
+    r = cur.fetchall()
+
+    if len(r) == 0:
+        sql = "INSERT INTO log (pr_id_sha1, {}) ".format(logtype) + \
+                "VALUES('{}-{}', '{}')".format(pr_id, pr_sha1, data)
+    elif len(r) == 1:
+        sql = "UPDATE log SET pr_id_sha1 = '{}-{}', {} = '{}'".format(pr_id, pr_sha1, logtype, data) + \
+                "WHERE pr_id_sha1 = '{}-{}'".format(pr_id, pr_sha1)
+    else:
+        log.error("Cannot store log")
+
+    log.debug(sql)
+    cur.execute(sql)
+    con.commit()
+    con.close()
+
+#-------------------------------------------------------------------------------
+# DB RUN
+#-------------------------------------------------------------------------------
+DB_RUN_FILE = os.path.join(os.path.dirname(__file__), 'hab.db')
+def db_connect(db_file=DB_RUN_FILE):
+    con = sqlite3.connect(db_file)
+    return con
+
+
 def initialize_db():
-    if not os.path.isfile(DB_FILE):
+    if not os.path.isfile(DB_RUN_FILE):
         con = db_connect()
         cur = con.cursor()
         sql = '''
@@ -45,6 +101,39 @@ def initialize_db():
                     run_time text DEFAULT "N/A",
                     status text DEFAULT Pending,
                     payload text NOT NULL)
+              '''
+        cur.execute(sql)
+        con.commit()
+        con.close()
+
+    if not os.path.isfile(DB_LOG_FILE):
+        con = db_connect_log()
+        cur = con.cursor()
+        sql = '''
+                CREATE TABLE log (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    pr_id_sha1 text NOT NULL,
+
+                    pre_clone text,
+                    clone text,
+                    post_clone text,
+
+                    pre_build text,
+                    build text,
+                    post_build text,
+
+                    pre_flash text,
+                    flash text,
+                    post_flash text,
+
+                    pre_boot text,
+                    boot text,
+                    post_boot text
+
+                    pre_test text,
+                    test text,
+                    post_test text
+                    )
               '''
         cur.execute(sql)
         con.commit()
@@ -183,14 +272,24 @@ regularly for the stopped() condition."""
         db_update_job(pr_id, pr_sha1, "Running", "N/A")
 
         # 2. Run (fake) job
-        for i in range(0, random.randint(0, 1000)):
+        states = ["clone", "build", "flash", "boot", "test"]
+        for s in states:
+            if s == "clone":
+                db_add_log(pr_id, pr_sha1, s, "This is my log from cloning.")
+            elif s == "build":
+                db_add_log(pr_id, pr_sha1, s, "This is my log from build.")
+            elif s == "flash":
+                db_add_log(pr_id, pr_sha1, s, "This is my log from flash.")
+            elif s == "run":
+                db_add_log(pr_id, pr_sha1, s, "This is my log from run.")
+            elif s == "test":
+                db_add_log(pr_id, pr_sha1, s, "This is my log from test.")
             time.sleep(random.randint(0, 10))
             if self.stopped():
                 log.debug("STOP Job : {}[{}]".format(self.job, i))
                 running_time = get_running_time(time_start)
                 db_update_job(pr_id, pr_sha1, "Cancelled(R)", running_time)
                 return
-            log.debug("RUNNING Job : {}[{}]".format(self.job, i))
         running_time = get_running_time(time_start)
         log.debug("END   Job : {} --> {}".format(self.job, running_time))
         db_update_job(pr_id, pr_sha1, "Success", running_time)
