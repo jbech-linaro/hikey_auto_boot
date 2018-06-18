@@ -18,31 +18,53 @@
 		border-radius: 0 !important;
 		font-size: 0.7em;
 	}
+
+	h1 {
+	    background: #F3F3F3; /* Light grey background */
+	    font-weight: bold; /* Make sure they're bold */
+	    font-size:16;
+	}
+
+	li {
+	    font-family: Helvetica, Arial, sans-serif; /* Nicer font */
+	    background: #FAFAFA; /* Lighter grey background */
+	    font-size:14;
+	}
 </style>
 </head>
 <title>OP-TEE CI and test for HiKey</title>
 <body>
-{% if gn %}
-  <h1 id="top">Build job: {{ gn }} - {{ gnr }}</h1>
+	<h1 id="top">Build job ID: {{ pr_id }}<br>Commit: {{ pr_sha1 }}</h1>
   <ul>
+	<li><a href="#clone">Clone log</a></li>
 	<li><a href="#build">Build log</a></li>
 	<li><a href="#flash">Flash log</a></li>
+	<li><a href="#boot">Boot log</a></li>
 	<li><a href="#test">Test log</a></li>
   </ul>
-  <h2 id="build">Build log (<a href="#top">top</a>)</h2>
+  <h1 id="clone">Clone log (<a href="#top">top</a>)</h2>
   <pre>
-		{{ build_log }}
+		{{ clone }}
   </pre>
 
-  <h2 id="flash">Flash log (<a href="#top">top</a>)</h2>
+  <h1 id="build">Build log (<a href="#top">top</a>)</h2>
   <pre>
-		{{ flash_log }}
+		{{ build }}
   </pre>
 
-  <h2 id="test">Test log (<a href="#top">top</a>)</h2>
+  <h1 id="flash">Flash log (<a href="#top">top</a>)</h2>
   <pre>
-		{{ test_log }}
+		{{ flash }}
   </pre>
-{% endif %}
+
+  <h1 id="boot">Boot log (<a href="#top">top</a>)</h2>
+  <pre>
+		{{ boot }}
+  </pre>
+
+  <h1 id="test">Test log (<a href="#top">top</a>)</h2>
+  <pre>
+		{{ test }}
+  </pre>
 </body>
 </html>

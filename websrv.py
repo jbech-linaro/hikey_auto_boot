@@ -70,17 +70,32 @@ def stop_page(pr_id, pr_sha1):
     worker.cancel(pr_id, pr_sha1)
     return 'OK'
 
-@app.route('/<git_name>/<int:github_nbr>')
-def show_post(git_name, github_nbr):
-    # show the post for a build job
-    bl = read_log(git_name, github_nbr, cfg.build_log)
-
-    fl = read_log(git_name, github_nbr, cfg.flash_log)
-
-    tl = read_log(git_name, github_nbr, cfg.run_log)
-
-    return render_template('job.html', gn=git_name, gnr=github_nbr,
-            build_log=bl, flash_log=fl, test_log=tl)
+@app.route('/logs/<int:pr_id>/<pr_sha1>')
+def show_log(pr_id, pr_sha1):
+    sql_data = worker.db_get_log(pr_id, pr_sha1)
+    log.info(sql_data)
+    if sql_data is not None:
+        return render_template('job.html',
+            pr_id=pr_id,
+            pr_sha1=pr_sha1,
+            pre_clone=sql_data[2],
+            clone=sql_data[3],
+            post_clone=sql_data[4],
+            pre_build=sql_data[5],
+            build=sql_data[6],
+            post_build=sql_data[7],
+            pre_flash=sql_data[8],
+            flash=sql_data[9],
+            post_flash=sql_data[10],
+            pre_boot=sql_data[11],
+            boot=sql_data[12],
+            post_boot=sql_data[13],
+            pre_test=sql_data[14],
+            test=sql_data[15],
+            post_test=sql_data[16]
+            )
+    else:
+        return render_template('job.html')
 
 @app.route('/payload', methods=['POST'])
 def payload():

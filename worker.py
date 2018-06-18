@@ -29,15 +29,19 @@ class LogType(Enum):
     PRE_CLONE =     0
     CLONE =         1
     POST_CLONE =    2
+
     PRE_BUILD =     3
     BUILD =         4
     POST_BUILD =    5
+
     PRE_FLASH =     6
     FLASH =         7
     POST_FLASH =    8
+
     PRE_BOOT =      9
     BOOT =          10
     POST_BOOT =     11
+
     PRE_TEST =      12
     TEST =          13
     POST_TEST =     14
@@ -109,6 +113,24 @@ def db_add_log(pr_id, pr_sha1, logtype, data):
     con.commit()
     con.close()
 
+def db_get_log(pr_id, pr_sha1):
+    if pr_id == 0 or pr_sha1 == 0:
+        log.error("Trying to get a log with no pr_id or pr_sha1!")
+        return
+
+    con = db_connect_log()
+    cur = con.cursor()
+    sql = "SELECT * FROM log WHERE pr_id_sha1 = '{}-{}'".format(pr_id, pr_sha1)
+    cur.execute(sql)
+    r = cur.fetchall()
+    con.commit()
+    con.close()
+    if len(r) != 1:
+        return None
+    else:
+        log.debug("Returning log: {}".format(r[0]))
+        return r[0]
+
 #-------------------------------------------------------------------------------
 # DB RUN
 #-------------------------------------------------------------------------------
@@ -146,25 +168,25 @@ def initialize_db():
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     pr_id_sha1 text NOT NULL,
 
-                    pre_clone text,
-                    clone text,
-                    post_clone text,
+                    pre_clone text DEFAULT "N/A",
+                    clone text DEFAULT "N/A",
+                    post_clone text DEFAULT "N/A",
 
-                    pre_build text,
-                    build text,
-                    post_build text,
+                    pre_build text DEFAULT "N/A",
+                    build text DEFAULT "N/A",
+                    post_build text DEFAULT "N/A",
 
-                    pre_flash text,
-                    flash text,
-                    post_flash text,
+                    pre_flash text DEFAULT "N/A",
+                    flash text DEFAULT "N/A",
+                    post_flash text DEFAULT "N/A",
 
-                    pre_boot text,
-                    boot text,
-                    post_boot text
+                    pre_boot text DEFAULT "N/A",
+                    boot text DEFAULT "N/A",
+                    post_boot text DEFAULT "N/A",
 
-                    pre_test text,
-                    test text,
-                    post_test text
+                    pre_test text DEFAULT "N/A",
+                    test text DEFAULT "N/A",
+                    post_test text DEFAULT "N/A"
                     )
               '''
         cur.execute(sql)
