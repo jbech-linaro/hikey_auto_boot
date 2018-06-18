@@ -188,8 +188,9 @@ regularly for the stopped() condition."""
             if self.stopped():
                 log.debug("STOP Job : {}[{}]".format(self.job, i))
                 running_time = get_running_time(time_start)
-                db_update_job(pr_id, pr_sha1, "Cancelled", running_time)
+                db_update_job(pr_id, pr_sha1, "Cancelled(R)", running_time)
                 return
+            log.debug("RUNNING Job : {}[{}]".format(self.job, i))
         running_time = get_running_time(time_start)
         log.debug("END   Job : {} --> {}".format(self.job, running_time))
         db_update_job(pr_id, pr_sha1, "Success", running_time)
@@ -239,6 +240,8 @@ class WorkerThread(threading.Thread):
 
         with self.lock:
             log.info("Got GitHub initiated add {}/{} --> PR#{}".format(pr_id, pr_sha1, pr_number))
+            # Check whether the jobs in the current queue touches the same PR
+            # number as this incoming request does.
             for i, elem in enumerate(self.q):
                 job_in_queue = self.job_dict[elem]
                 # Remove existing jobs as long as they are not user initiated
@@ -247,14 +250,40 @@ class WorkerThread(threading.Thread):
                     if not job_in_queue.user_initiated:
                         log.debug("Non user initiated job found in queue, removing {}".format(elem))
                         del self.q[i]
+
+            # Check whether current job also should be stopped (i.e, same
+            # PR, but _not_ user initiated).
+            if self.jt is not None and self.jt.job.pr_number() == pr_number \
+                and not self.jt.job.user_initiated:
+                    log.debug("Non user initiated job found running, stopping {}".format(self.jt.job))
+                    self.jt.stop()
+
             self.q.append(pr_id)
             self.job_dict[pr_id] = Job(payload, False)
 
     def cancel(self, pr_id, pr_sha1):
+        force_update = True
+
+        # Stop pending jobs
+        for i, elem in enumerate(self.q):
+            job_in_queue = self.job_dict[elem]
+            if job_in_queue.pr_id() == pr_id and job_in_queue.pr_sha1() == pr_sha1:
+                log.debug("Got a stop from web {}/{}".format(pr_id, pr_sha1))
+                del self.q[i]
+                db_update_job(job_in_queue.pr_id(), job_in_queue.pr_sha1(), "Cancelled(Q)", "N/A")
+                force_update = False
+
+        # Stop the running job
         if self.jt is not None:
             if self.jt.job.pr_id() == pr_id and self.jt.job.pr_sha1() == pr_sha1:
                 log.debug("Got a stop from web {}/{}".format(pr_id, pr_sha1))
                 self.jt.stop()
+                force_update = False
+
+        # If it wasn't in the queue nor running, then just update the status
+        if force_update:
+            db_update_job(pr_id, pr_sha1, "Cancelled(F)", "N/A")
+
 
     def run(self):
         """Main function taking care of running all jobs in the job queue."""
@@ -326,6 +355,7 @@ def add(payload):
     return True
 
 def cancel(pr_id, pr_sha1):
+    initialize()
     if pr_id is None or pr_sha1 is None:
         log.error("Trying to stop a job without a PR number")
     elif worker_thread is None:
