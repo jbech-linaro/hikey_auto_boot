@@ -329,12 +329,13 @@ regularly for the stopped() condition."""
         states = [ LogType.CLONE, LogType.BUILD, LogType.FLASH, LogType.BOOT, LogType.TEST ]
         for s in states:
             db_add_log(pr_id, pr_sha1, s, "This is my log from {}.".format(logstate_to_str(s)))
-            time.sleep(random.randint(0, 3))
-            if self.stopped():
-                log.debug("STOP Job : {}".format(self.job))
-                running_time = get_running_time(time_start)
-                db_update_job(pr_id, pr_sha1, "Cancelled(R)", running_time)
-                return
+            for i in range(0, 1000):
+                time.sleep(random.randint(0, 5))
+                if self.stopped():
+                    log.debug("STOP Job : {}".format(self.job))
+                    running_time = get_running_time(time_start)
+                    db_update_job(pr_id, pr_sha1, "Cancelled(R)", running_time)
+                    return
         running_time = get_running_time(time_start)
         log.debug("END   Job : {} --> {}".format(self.job, running_time))
         db_update_job(pr_id, pr_sha1, "Success", running_time)
@@ -403,8 +404,13 @@ class WorkerThread(threading.Thread):
                     log.debug("Non user initiated job found running, stopping {}".format(self.jt.job))
                     self.jt.stop()
 
-            self.q.append(pr_id)
-            self.job_dict[pr_id] = Job(payload, False)
+            pr_id_sha1 = "{}-{}".format(pr_id, pr_sha1)
+            self.q.append(pr_id_sha1)
+            new_job = Job(payload, False)
+            self.job_dict[pr_id_sha1] = new_job
+            db_add_build_record(new_job.payload)
+            #TODO: This shouldn't be needed, better to do the update in the db_add_build_record
+            db_update_job(pr_id, pr_sha1, "Pending", "N/A")
 
     def cancel(self, pr_id, pr_sha1):
         force_update = True
