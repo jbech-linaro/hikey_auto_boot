@@ -36,54 +36,70 @@ def initialize_db():
         cur = con.cursor()
         sql = '''
                 CREATE TABLE job (
-                    pr_id text PRIMARY KEY NOT NULL,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    pr_id text NOT NULL,
                     pr_number text NOT NULL,
                     full_name text NOT_NULL,
+                    sha1 text NOT_NULL,
                     date text NOT NULL,
                     run_time text DEFAULT "N/A",
                     status text DEFAULT Pending,
                     payload text NOT NULL)
               '''
         cur.execute(sql)
+        con.commit()
         con.close()
 
-def db_add_build_record(pr_id, pr_number, full_name, payload):
+def db_add_build_record(payload):
+    pr_id = github.pr_id(payload)
+    pr_sha1 = github.pr_sha1(payload)
+
+    log.debug("Adding record for {}/{}".format(pr_id, pr_sha1))
+    if pr_id == 0 or pr_sha1 == 0:
+        log.error("Trying to add s record with no pr_id or pr_sha1!")
+        return
+
     con = db_connect()
     cur = con.cursor()
-    sql = "SELECT pr_id FROM job WHERE pr_id = '{}'".format(pr_id)
+    sql = "SELECT pr_id FROM job WHERE pr_id = '{}' AND sha1 = '{}'".format(pr_id, pr_sha1)
     cur.execute(sql)
     r = cur.fetchall()
+    log.debug(r)
     if len(r) >= 1:
-        log.debug("Record for pr_id {} is already in the "
-                "database".format(pr_id))
+        log.debug("Record for pr_id/sha1 {}/{} is already in the "
+                "database".format(pr_id, pr_sha1))
         con.commit()
         con.close()
         return
 
-    sql = "INSERT INTO job (pr_id, pr_number, full_name, date, payload) " + \
-            "VALUES('{}','{}','{}',datetime('now'), '{}')".format(
-                    pr_id, pr_number, full_name, json.dumps(payload))
+    pr_number = github.pr_number(payload)
+    pr_full_name = github.pr_full_name(payload)
+    sql = "INSERT INTO job (pr_id, pr_number, full_name, sha1, date, payload) " + \
+            "VALUES('{}','{}','{}', '{}', datetime('now'), '{}')".format(
+                    pr_id, pr_number, pr_full_name, pr_sha1, json.dumps(payload))
     cur.execute(sql)
     con.commit()
     con.close()
 
-def db_update_job(pr_id, status, running_time):
+def db_update_job(pr_id, pr_sha1, status, running_time):
+    log.debug("Update record for {}/{}".format(pr_id, pr_sha1))
     con = db_connect()
     cur = con.cursor()
-    sql = "UPDATE job SET status = '{}', run_time = '{}' WHERE pr_id = '{}'".format(status, running_time, pr_id)
+    sql = "UPDATE job SET status = '{}', run_time = '{}', date = datetime('now') WHERE pr_id = '{}' AND sha1 = '{}'".format(
+                    status, running_time, pr_id, pr_sha1)
     log.debug(sql)
     cur.execute(sql)
     con.commit()
     con.close()
 
-def db_get_payload_from_pr_id(pr_id):
+def db_get_payload_from_pr_id(pr_id, pr_sha1):
     con = db_connect()
     cur = con.cursor()
-    sql = "SELECT payload FROM job WHERE pr_id = '{}'".format(pr_id)
+    sql = "SELECT payload FROM job WHERE pr_id = '{}' AND sha1 = '{}'".format(pr_id, pr_sha1)
     cur.execute(sql)
     r = cur.fetchall()
     if len(r) > 1:
-        log.error("Found duplicated pr_id in the database")
+        log.error("Found duplicated pr_id/pr_sha1 in the database")
         return -1
     con.commit()
     con.close()
@@ -93,7 +109,7 @@ def db_get_payload_from_pr_id(pr_id):
 def db_get_html_row(page):
     con = db_connect()
     cur = con.cursor()
-    sql = "SELECT * FROM job ORDER BY pr_id DESC LIMIT {}".format(page * 15)
+    sql = "SELECT * FROM job ORDER BY id DESC LIMIT {}".format(page * 15)
     cur.execute(sql)
     r = cur.fetchall()
     con.commit()
@@ -135,6 +151,9 @@ class Job():
     def pr_full_name(self):
         return github.pr_full_name(self.payload)
 
+    def pr_sha1(self):
+        return github.pr_sha1(self.payload)
+
 class JobThread(threading.Thread):
     """Thread class with a stop() method. The thread itself has to check
 regularly for the stopped() condition."""
@@ -159,12 +178,11 @@ regularly for the stopped() condition."""
 
         # 1. Insert initial record in the database
         pr_id = self.job.pr_id()
-        pr_number = self.job.pr_number()
-        pr_full_name = self.job.pr_full_name()
+        pr_sha1 = self.job.pr_sha1()
         # This will fail when running with test data, since there is the unique
         # constrain in the database.
-        db_add_build_record(pr_id, pr_number, pr_full_name, self.job.payload)
-        db_update_job(pr_id, "Pending", "N/A")
+        db_add_build_record(self.job.payload)
+        db_update_job(pr_id, pr_sha1, "Running", "N/A")
 
         # 2. Run (fake) job
         for i in range(0, random.randint(0, 5)):
@@ -172,11 +190,11 @@ regularly for the stopped() condition."""
             if self.stopped():
                 log.debug("STOP Job : {}[{}]".format(self.job, i))
                 running_time = get_running_time(time_start)
-                db_update_job(pr_id, "Cancelled", running_time)
+                db_update_job(pr_id, pr_sha1, "Cancelled", running_time)
                 return
         running_time = get_running_time(time_start)
         log.debug("END   Job : {} --> {}".format(self.job, running_time))
-        db_update_job(pr_id, "Success", running_time)
+        db_update_job(pr_id, pr_sha1, "Success", running_time)
 
 ################################################################################
 # Worker
@@ -195,20 +213,21 @@ class WorkerThread(threading.Thread):
         self.jt = None
         self.lock = threading.Lock()
 
-    def user_add(self, pr_id):
-        if pr_id is None:
-            log.error("Missing pr_id when trying to submit user job")
+    def user_add(self, pr_id, pr_sha1):
+        if pr_id is None or pr_sha1 is None:
+            log.error("Missing pr_id or pr_sha1 when trying to submit user job")
             return
 
         with self.lock:
-            log.debug("Got user initated add {}".format(pr_id))
-            payload = db_get_payload_from_pr_id(pr_id)
+            log.debug("Got user initated add {}/{}".format(pr_id, pr_sha1))
+            payload = db_get_payload_from_pr_id(pr_id, pr_sha1)
             if payload is None:
                 log.error("Didn't find payload for ID:{}".format(pr_id))
                 return
 
             self.q.append(pr_id)
             self.job_dict[pr_id] = Job(payload, True)
+            db_update_job(pr_id, pr_sha1, "Pending", "N/A")
 
     def add(self, payload):
         """Responsible of adding new jobs the the job queue."""
@@ -232,10 +251,10 @@ class WorkerThread(threading.Thread):
             self.q.append(pr_id)
             self.job_dict[pr_id] = Job(payload, False)
 
-    def cancel(self, pr_id):
+    def cancel(self, pr_id, pr_sha1):
         if self.jt is not None:
-            if self.jt.job.pr_id() == pr_id:
-                log.debug("Got a stop from web PR ({})".format(pr_id))
+            if self.jt.job.pr_id() == pr_id and self.jt.job.pr_sha1() == pr_sha1:
+                log.debug("Got a stop from web {}/{}".format(pr_id, pr_sha1))
                 self.jt.stop()
 
     def run(self):
@@ -288,14 +307,14 @@ def initialize():
 
     if not initialized:
         initialize_logger()
-        initialize_worker_thread()
         initialize_db()
+        initialize_worker_thread()
         log.info("Initialize done!")
         initialized = True
 
-def user_add(pr_id):
+def user_add(pr_id, pr_sha1):
     initialize()
-    worker_thread.user_add(pr_id)
+    worker_thread.user_add(pr_id, pr_sha1)
 
 def add(payload):
     initialize()
@@ -307,13 +326,13 @@ def add(payload):
     worker_thread.add(payload)
     return True
 
-def cancel(pr_number):
-    if pr_number is None:
+def cancel(pr_id, pr_sha1):
+    if pr_id is None or pr_sha1 is None:
         log.error("Trying to stop a job without a PR number")
     elif worker_thread is None:
         log.error("Threads are not initialized")
     else:
-        worker_thread.cancel(pr_number)
+        worker_thread.cancel(pr_id, pr_sha1)
 
 ################################################################################
 # Debug
@@ -333,6 +352,7 @@ def load_payload_from_file(filename=None):
     return json.loads(payload)
 
 def local_run():
+    initialize()
     add(load_payload_from_file())
 
 if __name__ == "__main__":

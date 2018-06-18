@@ -60,14 +60,14 @@ def main_paginate(page):
     return render_template('main.html', sd=sql_data, page=page)
 
 
-@app.route('/restart/<int:pr_id>')
-def restart_page(pr_id):
-    worker.user_add(pr_id)
+@app.route('/restart/<int:pr_id>/<pr_sha1>')
+def restart_page(pr_id, pr_sha1):
+    worker.user_add(pr_id, pr_sha1)
     return 'OK'
 
-@app.route('/stop/<int:pr_id>')
-def stop_page(pr_id):
-    worker.cancel(pr_id)
+@app.route('/stop/<int:pr_id>/<pr_sha1>')
+def stop_page(pr_id, pr_sha1):
+    worker.cancel(pr_id, pr_sha1)
     return 'OK'
 
 @app.route('/<git_name>/<int:github_nbr>')

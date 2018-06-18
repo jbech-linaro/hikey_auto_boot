@@ -46,8 +46,9 @@
   <table>
 	  <tr>
 		  <th>Job ID / Log</th>
+		  <th>Commit</th>
 		  <th>Git</th>
-		  <th>Pull Request</th>
+		  <th>PR#</th>
 		  <th>Date</th>
 		  <th>Runtime</th>
 		  <th>Status</th>
@@ -55,14 +56,15 @@
 	  </tr>
 	  {% for l in sd %}
 	  <tr>
-		  <td>{{ l[0] }}</td>
-		  <td><a href="https://github.com/{{ l[2] }}">{{ l[2] }}</a></td>
-		  <td><a href="https://github.com/{{ l[2] }}/pull/{{ l[1] }}">{{ l[1] }}</a></td>
-		  <td>{{ l[3] }}</td>
-		  <td>{{ l[4] }}</td>
+		  <td>{{ l[1] }}</td>
+		  <td>{{ l[4]|truncate(12) }}</td>
+		  <td><a href="https://github.com/{{ l[3] }}">{{ l[3] }}</a></td>
+		  <td><a href="https://github.com/{{ l[3] }}/pull/{{ l[2] }}">{{ l[2] }}</a></td>
 		  <td>{{ l[5] }}</td>
-		  <td><a href="stop/{{ l[0] }}">[stop]</a> |
-		      <a href="restart/{{ l[0] }}">[restart]</a>
+		  <td>{{ l[6] }}</td>
+		  <td>{{ l[7] }}</td>
+		  <td><a href="stop/{{ l[1] }}/{{ l[4] }}">[stop]</a> |
+			  <a href="restart/{{ l[1] }}/{{ l[4] }}">[restart]</a>
 		      </td>
 	  </tr>
 	  {% endfor %}
