@@ -5,11 +5,13 @@ import json
 import logging as log
 import os
 import random
+import pexpect
 import signal
 import sqlite3
 import sys
 import threading
 import time
+import yaml
 
 import github
 
@@ -21,6 +23,74 @@ def signal_handler(signal, frame):
     sys.exit(0)
 
 signal.signal(signal.SIGINT, signal_handler)
+################################################################################
+# Pexpect
+################################################################################
+
+work_logs = {}
+
+class FileAdapter(object):
+    def __init__(self):
+        log.info("Creating FileAdapter!")
+
+    def set_logtype(self, logtype):
+        self.logtype = logtype
+
+    def write(self, data):
+        global work_logs
+        # NOTE: data can be a partial line, multiple lines
+        #data = data.strip() # ignore leading/trailing whitespace
+        print("----->  {}".format(data))
+        if work_logs[self.logtype] is not None:
+            work_logs[self.logtype] += data
+        else:
+            work_logs[self.logtype] = data
+
+    def flush(self):
+        #print("---- LET ME FLUSH ----")
+        pass
+
+def get_yaml_cmd(yml_iter):
+    cmd = yml_iter.get('cmd', None)
+    exp = yml_iter.get('exp', None)
+    to = yml_iter.get('timeout', 3)
+    log.debug("cmd: {}, exp: {}, timeout: {}".format(cmd, exp, to))
+    return cmd, exp, to
+
+def do_pexpect(child, cmd=None, exp=None, timeout=5, error_pos=1):
+    if cmd is not None:
+        log.debug("Sending: {}".format(cmd))
+        log.debug("         {}".format(type(cmd)))
+        child.sendline(cmd)
+
+    if exp is not None:
+        e = []
+
+        # In the yaml file there could be standalone lines or there could be
+        # a list if expected output.
+        if isinstance(exp, list):
+            e = exp + [pexpect.TIMEOUT]
+        else:
+            e.append(exp)
+            e.append(pexpect.TIMEOUT)
+
+        print("Expecting: {} (timeout={}, error={})".format(e, timeout, error_pos))
+        r = child.expect(e, timeout=timeout)
+        print("Got: {} (error at {})".format(r, error_pos))
+        if r >= error_pos:
+            log.error("Returning false")
+            return False
+
+    return True
+
+def spawn_pexpect_child():
+    rcfile = '--rcfile {}/.bashrc'.format(os.getcwd())
+    child = pexpect.spawnu('/bin/bash', ['--rcfile', rcfile])
+    return child
+
+def terminate_child(child):
+    child.close()
+    #logger.store_logfile(git_name, github_nbr, filename)
 
 ################################################################################
 # SQLITE3
@@ -97,18 +167,22 @@ def db_add_log(pr_id, pr_sha1, logtype, data):
     cur.execute(sql)
     r = cur.fetchall()
 
+    # With this way we can accept both Enum as well as strings
+    if type(logtype) is not str:
+        logtype = logstate_to_str(logtype)
+
     # No match, i.e., new record
     if len(r) == 0:
-        sql = "INSERT INTO log (pr_id_sha1, {}) ".format(logstate_to_str(logtype)) + \
+        sql = "INSERT INTO log (pr_id_sha1, {}) ".format(logtype) + \
                 "VALUES('{}-{}', '{}')".format(pr_id, pr_sha1, data)
     elif len(r) == 1:
         sql = "UPDATE log SET pr_id_sha1 = '{}-{}', {} = '{}' ".format(
-                pr_id, pr_sha1, logstate_to_str(logtype), data) + \
+                pr_id, pr_sha1, logtype, data) + \
                 "WHERE pr_id_sha1 = '{}-{}'".format(pr_id, pr_sha1)
     else:
         log.error("Cannot store log")
 
-    log.debug(sql)
+    log.debug(data)
     cur.execute(sql)
     con.commit()
     con.close()
@@ -128,7 +202,7 @@ def db_get_log(pr_id, pr_sha1):
     if len(r) != 1:
         return None
     else:
-        log.debug("Returning log: {}".format(r[0]))
+        #log.debug("Returning log: {}".format(r[0]))
         return r[0]
 
 #-------------------------------------------------------------------------------
@@ -322,9 +396,48 @@ regularly for the stopped() condition."""
     def stopped(self):
         return self._stop_event.is_set()
 
+    def start_job(self):
+        global logstr
+        global work_logs
+
+        log.info("Start clone, build ... sequence for {}".format(self.job))
+        with open("test.yaml", 'r') as yml:
+            yml_config = yaml.load(yml)
+
+        # Loop all defined values
+        for section in logstr:
+            # Clear the log we are about to work with
+            yml_iter = yml_config[section]
+            child = spawn_pexpect_child()
+            f = open("tmp.log", 'w')
+            child.logfile = f
+
+            if yml_iter is None:
+                continue
+
+            log.debug("Dealing with yaml: {}".format(section))
+            for i in yml_iter:
+                print(i)
+                c, e, t = get_yaml_cmd(i)
+
+                if not do_pexpect(child, c, e, t):
+                    terminate_child(child)
+                    # TODO: Update log
+                    log.error("{} failed, quit!".format(section))
+                    f.close()
+                    return
+            f.close
+            with open("tmp.log", 'r') as f:
+                lines = "".join(f.readlines())
+                print(lines)
+                db_add_log(self.job.pr_id(), self.job.pr_sha1(), section, lines)
+
+
     def run(self):
         """This is the main function for running a complete clone, build, flash
         and test job."""
+        global job_running
+
         log.debug("START Job : {}".format(self.job))
         time_start = time.time()
 
@@ -336,20 +449,24 @@ regularly for the stopped() condition."""
         db_add_build_record(self.job.payload)
         db_update_job(pr_id, pr_sha1, "Running", "N/A")
 
+        # 2. Run
+        self.start_job()
+
         # 2. Run (fake) job
-        states = [ LogType.CLONE, LogType.BUILD, LogType.FLASH, LogType.BOOT, LogType.TEST ]
-        for s in states:
-            db_add_log(pr_id, pr_sha1, s, "This is my log from {}.".format(logstate_to_str(s)))
-            for i in range(0, 12):
-                time.sleep(random.randint(0, 5))
-                log.debug("Running Job : {}[{}] \nqueue -> {}".format(self.job, i, worker_thread.q))
-                if self.stopped():
-                    log.debug("STOP Job : {}".format(self.job))
-                    running_time = get_running_time(time_start)
-                    db_update_job(pr_id, pr_sha1, "Cancelled(R)", running_time)
-                    return
+        #states = [ LogType.CLONE, LogType.BUILD, LogType.FLASH, LogType.BOOT, LogType.TEST ]
+        #for s in states:
+        #    db_add_log(pr_id, pr_sha1, s, "This is my log from {}.".format(logstate_to_str(s)))
+        #    for i in range(0, 12):
+        #        time.sleep(random.randint(0, 5))
+        #        log.debug("Running Job : {}[{}] \nqueue -> {}".format(self.job, i, worker_thread.q))
+        #        if self.stopped():
+        #            log.debug("STOP Job : {}".format(self.job))
+        #            running_time = get_running_time(time_start)
+        #            db_update_job(pr_id, pr_sha1, "Cancelled(R)", running_time)
+        #            return
         running_time = get_running_time(time_start)
         log.debug("END   Job : {} --> {}".format(self.job, running_time))
+        # TODO: Success should probably be a variable instead
         db_update_job(pr_id, pr_sha1, "Success", running_time)
 
 ################################################################################

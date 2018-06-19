@@ -78,7 +78,7 @@ def stop_page(pr_id, pr_sha1):
 @app.route('/logs/<int:pr_id>/<pr_sha1>')
 def show_log(pr_id, pr_sha1):
     sql_data = worker.db_get_log(pr_id, pr_sha1)
-    log.info(sql_data)
+    #log.info(sql_data)
     if sql_data is not None:
         return render_template('job.html',
             pr_id=pr_id,
