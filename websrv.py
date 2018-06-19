@@ -59,6 +59,11 @@ def main_paginate(page):
     sql_data = worker.db_get_html_row(page)
     return render_template('main.html', sd=sql_data, page=page)
 
+# TODO: This will show PRs from all gits and not a unique git
+@app.route('/pr/<int:pr_number>')
+def show_pr(pr_number):
+    sql_data = worker.db_get_pr(pr_number)
+    return render_template('pr.html', sd=sql_data, pr_number=pr_number)
 
 @app.route('/restart/<int:pr_id>/<pr_sha1>')
 def restart_page(pr_id, pr_sha1):

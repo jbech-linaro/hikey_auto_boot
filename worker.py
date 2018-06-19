@@ -257,6 +257,16 @@ def db_get_html_row(page):
     con.close()
     return r
 
+def db_get_pr(pr_number):
+    con = db_connect()
+    cur = con.cursor()
+    sql = "SELECT * FROM job WHERE pr_number = '{}' ORDER BY date DESC, full_name".format(pr_number)
+    cur.execute(sql)
+    r = cur.fetchall()
+    con.commit()
+    con.close()
+    return r
+
 ################################################################################
 # Utils
 ################################################################################

@@ -59,7 +59,7 @@
 	  </tr>
 	  {% for l in sd %}
 	  <tr>
-		  <td><a href="logs/{{ l[1] }}/{{ l[4] }}">{{ l[1] }}</a></td>
+		  <td><a href="logs/{{ l[1] }}/{{ l[4] }}">{{ l[0] }}</a></td>
 		  <td><a href="https://github.com/{{ l[3] }}/commit/{{ l[4] }}">{{ l[4]|truncate(12) }}</a></td>
 		  <td><a href="https://github.com/{{ l[3] }}">{{ l[3] }}</a></td>
 		  <td><a href="https://github.com/{{ l[3] }}/pull/{{ l[2] }}">{{ l[2] }}</a></td>
@@ -71,7 +71,7 @@
 		      </td>
 	  </tr>
 	  {% endfor %}
-  <table>
+  </table>
 	  <div align="center">
 	  {% if page > 1 %}
 		<a href="{{ page - 1}}">[Less] | </a>
