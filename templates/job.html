@@ -36,35 +36,19 @@
 <body>
 	<h1 id="top">Build job ID: {{ pr_id }}<br>Commit: {{ pr_sha1 }}</h1>
   <ul>
-	<li><a href="#clone">Clone log</a></li>
-	<li><a href="#build">Build log</a></li>
-	<li><a href="#flash">Flash log</a></li>
-	<li><a href="#boot">Boot log</a></li>
-	<li><a href="#test">Test log</a></li>
+  {% for key, value in logs.items() %}
+	  {% if value %}
+		  <li><a href="#{{ key }}">{{ key|title }} log</a></li>
+	  {% endif %}
+  {% endfor %}
   </ul>
-  <h1 id="clone">Clone log (<a href="#top">top</a>)</h2>
-  <pre>
-		{{ clone }}
-  </pre>
-
-  <h1 id="build">Build log (<a href="#top">top</a>)</h2>
-  <pre>
-		{{ build }}
-  </pre>
-
-  <h1 id="flash">Flash log (<a href="#top">top</a>)</h2>
-  <pre>
-		{{ flash }}
-  </pre>
-
-  <h1 id="boot">Boot log (<a href="#top">top</a>)</h2>
-  <pre>
-		{{ boot }}
-  </pre>
-
-  <h1 id="test">Test log (<a href="#top">top</a>)</h2>
-  <pre>
-		{{ test }}
-  </pre>
+  {% for key, value in logs.items() %}
+	  {% if value %}
+	  <h1 id="{{ key }}">{{ key|title }} log (<a href="#top">top</a>)</h2>
+	  <pre>
+{{ value }}
+	  </pre>
+  {% endif %}
+  {% endfor %}
 </body>
 </html>

@@ -123,19 +123,43 @@ def logstate_to_str(s):
 #-------------------------------------------------------------------------------
 # Log handling
 #-------------------------------------------------------------------------------
-def db_add_log(pr_id, pr_sha1, logtype, data):
-    if pr_id == 0 or pr_sha1 == 0:
-        log.error("Trying to add log with no pr_id or pr_sha1!")
-        return
-    # TODO: Implement
-
-def db_get_log(pr_id, pr_sha1):
-    if pr_id == 0 or pr_sha1 == 0:
-        log.error("Trying to get a log with no pr_id or pr_sha1!")
+def get_logs(pr_full_name, pr_number, pr_id, pr_sha1):
+    if (pr_full_name is None or pr_number is None or pr_id is None or
+        pr_sha1 is None):
+        log.error("Cannot store log file (missing parameters)")
         return
 
-    # TODO: Implement
-    return r[0]
+    log_file_dir = "{p}/logs/{fn}/{n}/{i}/{s}".format(
+            p=os.getcwd(), fn=pr_full_name, n=pr_number, i=pr_id, s=pr_sha1)
+
+    log.debug("Getting logs from {}".format(log_file_dir))
+
+    logs = {}
+    for logtype in logstr:
+        filename = "{}.log".format(logtype)
+        logs[logtype] = read_log(log_file_dir, filename)
+
+    return logs
+
+def read_log(log_file_dir, filename):
+    if log_file_dir is None or filename is None:
+        log.error("Cannot store log file (missing parameters)")
+        return
+
+    # TODO: Check for "../" in log_file_dir so we are not vulnerable to
+    # injection attacks.
+    log_file = "{d}/{f}".format(d=log_file_dir, f=filename)
+    log = ""
+    try:
+        with open(log_file, 'r') as f:
+            log = f.read()
+    except IOError:
+        pass
+
+    # Must decode to UTF otherwise there is a risk for a UnicodeDecodeError
+    # exception when trying to access the log from the web-browser.
+    return log
+
 
 def store_logfile(pr_full_name, pr_number, pr_id, pr_sha1, filename):
     if (pr_full_name is None or pr_number is None or pr_id is None or
@@ -245,6 +269,7 @@ def db_get_payload_from_pr_id(pr_id, pr_sha1):
 def db_get_html_row(page):
     con = db_connect()
     cur = con.cursor()
+    # TODO: Return on the necessary things
     sql = "SELECT * FROM job ORDER BY id DESC LIMIT {}".format(page * 15)
     cur.execute(sql)
     r = cur.fetchall()

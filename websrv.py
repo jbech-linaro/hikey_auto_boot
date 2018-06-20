@@ -25,29 +25,11 @@ def verify_hmac_hash(data, signature):
     signature = bytearray(signature, "utf-8")
     return hmac.compare_digest(hexdigest, signature)
 
-
 def dump_json_blob_to_file(request, filename="last_blob.json"):
     """ Debug function to dump the last json blob to file """
     with open(filename, 'w') as f:
         payload = request.get_json()
         json.dump(payload, f, indent=4)
-
-def read_log(git_name, github_nbr, filename):
-    log_file_dir = "{}/logs/{name}/{nbr}".format(os.getcwd(),
-            name=git_name, nbr=github_nbr)
-    # TODO: Check for "../" in log_file_dir so we are not vulnerable to
-    # injection attacks.
-    log_file = "{d}/{f}".format(d=log_file_dir, f=filename)
-    log = ""
-    try:
-        with open(log_file, 'r') as f:
-            log = f.read()
-    except IOError:
-        pass
-
-    # Must decode to UTF otherwise there is a risk for a UnicodeDecodeError
-    # exception when trying to access the log from the web-browser.
-    return log
 
 @app.route('/')
 def main_page(page=1):
@@ -75,32 +57,12 @@ def stop_page(pr_id, pr_sha1):
     worker.cancel(pr_id, pr_sha1)
     return 'OK'
 
-@app.route('/logs/<int:pr_id>/<pr_sha1>')
-def show_log(pr_id, pr_sha1):
-    sql_data = worker.db_get_log(pr_id, pr_sha1)
-    #log.info(sql_data)
-    if sql_data is not None:
-        return render_template('job.html',
-            pr_id=pr_id,
-            pr_sha1=pr_sha1,
-            pre_clone=sql_data[2],
-            clone=sql_data[3],
-            post_clone=sql_data[4],
-            pre_build=sql_data[5],
-            build=sql_data[6],
-            post_build=sql_data[7],
-            pre_flash=sql_data[8],
-            flash=sql_data[9],
-            post_flash=sql_data[10],
-            pre_boot=sql_data[11],
-            boot=sql_data[12],
-            post_boot=sql_data[13],
-            pre_test=sql_data[14],
-            test=sql_data[15],
-            post_test=sql_data[16]
-            )
-    else:
-        return render_template('job.html')
+# logs/jbech-linaro/optee_os/2/149713049/2bcfbd494fd4ce795840697a4d10cdb26f39d6aa
+@app.route('/logs/<owner>/<project>/<int:pr_number>/<int:pr_id>/<pr_sha1>')
+def show_log(owner, project, pr_number, pr_id, pr_sha1):
+    pr_full_name = "{}/{}".format(owner, project)
+    logs = worker.get_logs(pr_full_name, pr_number, pr_id, pr_sha1)
+    return render_template('job.html', pr_id=pr_id, pr_sha1=pr_sha1, logs=logs)
 
 @app.route('/payload', methods=['POST'])
 def payload():
