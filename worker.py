@@ -180,6 +180,19 @@ def read_log(log_file_dir, filename):
 
     return log
 
+def clear_logfiles(pr_full_name, pr_number, pr_id, pr_sha1):
+    if (pr_full_name is None or pr_number is None or pr_id is None or
+            pr_sha1 is None):
+        log.error("Cannot clear log files (missing parameters)")
+        return
+
+    log_file_dir = "{p}/logs/{fn}/{n}/{i}/{s}".format(
+            p=os.getcwd(), fn=pr_full_name, n=pr_number, i=pr_id, s=pr_sha1)
+
+    for f in logstr:
+        full_filename = "{}/{}.log".format(log_file_dir, f)
+        if os.path.isfile(full_filename):
+            os.remove(full_filename)
 
 def store_logfile(pr_full_name, pr_number, pr_id, pr_sha1, filename):
     if (pr_full_name is None or pr_number is None or pr_id is None or
@@ -399,6 +412,12 @@ regularly for the stopped() condition."""
         log.info("Start clone, build ... sequence for {}".format(self.job))
         with open("test.yaml", 'r') as yml:
             yml_config = yaml.load(yml)
+
+        # To prevent old logs from showing up on the web-page, start by
+        # removing all of them.
+        clear_logfiles(self.job.pr_full_name(),
+                       self.job.pr_number(), self.job.pr_id(),
+                       self.job.pr_sha1())
 
         # Loop all defined values
         for logtype in logstr:
