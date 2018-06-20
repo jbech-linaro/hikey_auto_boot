@@ -8,14 +8,18 @@
 	}
 
 	pre, code {
-		background-color: lightgrey;
+		background-color: #eee;
 		font-family: 'Consolas', 'Menlo', 'Deja Vu Sans Mono', 'Bitstream Vera Sans Mono', monospace;
 		white-space: pre-wrap;       /* Since CSS 2.1 */
 		white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
 		white-space: -pre-wrap;      /* Opera 4-6 */
 		white-space: -o-pre-wrap;    /* Opera 7 */
 		word-wrap: break-word;       /* Internet Explorer 5.5+ */
-		border-radius: 0 !important;
+		border-radius: 2;
+		border: 2px solid #000;
+		border-collapse: collapse;
+		padding: 10px 10px;
+		margin: 30;
 		font-size: 0.7em;
 	}
 
@@ -25,11 +29,6 @@
 	    font-size:16;
 	}
 
-	li {
-	    font-family: Helvetica, Arial, sans-serif; /* Nicer font */
-	    background: #FAFAFA; /* Lighter grey background */
-	    font-size:14;
-	}
 	table {
 	    color: #333; /* Lighten up font color */
 	    font-family: Helvetica, Arial, sans-serif; /* Nicer font */
@@ -53,10 +52,26 @@
 	    background: #FAFAFA; /* Lighter grey background */
 	    text-align: center; /* Center our text */
 	}
+
+	li {
+	    color: #333; /* Lighten up font color */
+	    font-family: Helvetica, Arial, sans-serif; /* Nicer font */
+	    font-size:13;
+	}
+
+	.content {
+		margin-top: 50px;
+		margin-left: 100px;
+		margin-right: 100px;
+	}
+
+	.info {
+		font-weight: bold; /* Make sure they're bold */
+	}
 </style>
 </head>
 <title>OP-TEE CI and Test</title>
-<body>
+<body class="content">
   <table>
 	  <tr>
 		  <th>Git</th>
@@ -71,6 +86,7 @@
 		  <td>{{ pr_id }}</td>
 	  </tr>
   </table>
+<p class="info">Links to log-files</p>
   <ul>
   {% for key, value in logs.items() %}
 	  {% if value %}
@@ -80,8 +96,8 @@
   </ul>
   {% for key, value in logs.items() %}
 	  {% if value %}
-	  <h1 id="{{ key }}">{{ key|title }} log (<a href="#top">top</a>)</h2>
-	  <pre>
+	  <p class="info" id="{{ key }}">{{ key|title }} Log (<a href="#top">top</a>)</h2>
+	  <pre class="center">
 {{ value }}
 	  </pre>
   {% endif %}

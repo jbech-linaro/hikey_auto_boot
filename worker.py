@@ -7,6 +7,7 @@ import logging as log
 import os
 import random
 import pexpect
+import re
 import signal
 import sqlite3
 import sys
@@ -154,8 +155,10 @@ def read_log(log_file_dir, filename):
     log_file = "{d}/{f}".format(d=log_file_dir, f=filename)
     log = ""
     try:
+        ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
         with open(log_file, 'r') as f:
-            log = f.read()
+            # Let's remove ansi escape characters
+            log = ansi_escape.sub('', f.read())
     except IOError:
         pass
 
@@ -364,6 +367,8 @@ regularly for the stopped() condition."""
 
                 if yml_iter is None:
                     log.debug("yaml: {} is empty".format(section))
+                    store_logfile(self.job.pr_full_name(), self.job.pr_number(),
+                                  self.job.pr_id(), self.job.pr_sha1(), filename)
                     continue
 
                 log.debug("Dealing with yaml: {}".format(section))
