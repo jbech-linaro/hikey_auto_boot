@@ -20,6 +20,8 @@ import github
 ###############################################################################
 # Sigint
 ###############################################################################
+
+
 def signal_handler(signal, frame):
     log.debug("Gracefully killed!")
     sys.exit(0)
@@ -29,6 +31,8 @@ signal.signal(signal.SIGINT, signal_handler)
 ###############################################################################
 # Pexpect
 ###############################################################################
+
+
 def get_yaml_cmd(yml_iter):
     cmd = yml_iter.get('cmd', None)
     exp = yml_iter.get('exp', None)
@@ -53,9 +57,12 @@ def do_pexpect(child, cmd=None, exp=None, timeout=5, error_pos=1):
             e.append(exp)
             e.append(pexpect.TIMEOUT)
 
-        log.debug("Expecting: {} (timeout={}, error={})".format(e, timeout, error_pos))
+        log.debug("Expecting: {} (timeout={}, error={})".format(
+            e, timeout, error_pos))
+
         r = child.expect(e, timeout=timeout)
-        log.debug("Got: {} (value above {} is considered an error)".format(r, error_pos))
+        log.debug("Got: {} (value above {} is considered an error)".format(
+            r, error_pos))
         if r >= error_pos:
             return False
 
@@ -64,7 +71,8 @@ def do_pexpect(child, cmd=None, exp=None, timeout=5, error_pos=1):
 
 def spawn_pexpect_child():
     rcfile = '--rcfile {}/.bashrc'.format(os.getcwd())
-    child = pexpect.spawnu('/bin/bash', ['--rcfile', rcfile],  encoding='utf-8')
+    child = pexpect.spawnu('/bin/bash', ['--rcfile', rcfile],
+                           encoding='utf-8')
     child.logfile_read = sys.stdout
     child.sendline('export PS1="HAB $ "')
     child.expect("HAB")
@@ -77,26 +85,28 @@ def terminate_child(child):
 ###############################################################################
 # SQLITE3
 ###############################################################################
+
+
 class LogType(Enum):
-    PRE_CLONE =     0
-    CLONE =         1
-    POST_CLONE =    2
+    PRE_CLONE = 0
+    CLONE = 1
+    POST_CLONE = 2
 
-    PRE_BUILD =     3
-    BUILD =         4
-    POST_BUILD =    5
+    PRE_BUILD = 3
+    BUILD = 4
+    POST_BUILD = 5
 
-    PRE_FLASH =     6
-    FLASH =         7
-    POST_FLASH =    8
+    PRE_FLASH = 6
+    FLASH = 7
+    POST_FLASH = 8
 
-    PRE_BOOT =      9
-    BOOT =          10
-    POST_BOOT =     11
+    PRE_BOOT = 9
+    BOOT = 10
+    POST_BOOT = 11
 
-    PRE_TEST =      12
-    TEST =          13
-    POST_TEST =     14
+    PRE_TEST = 12
+    TEST = 13
+    POST_TEST = 14
 
 # This must stay in sync with class LogType above!
 # TODO: Should probably replace with a dict instead!
@@ -119,7 +129,7 @@ logstr = [
 
     "pre_test",
     "test",
-    "post_test" ]
+    "post_test"]
 
 
 def logstate_to_str(s):
@@ -127,12 +137,14 @@ def logstate_to_str(s):
     global logstr
     return logstr[s.value]
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Log handling
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+
+
 def get_logs(pr_full_name, pr_number, pr_id, pr_sha1):
     if (pr_full_name is None or pr_number is None or pr_id is None or
-        pr_sha1 is None):
+            pr_sha1 is None):
         log.error("Cannot store log file (missing parameters)")
         return
 
@@ -171,7 +183,7 @@ def read_log(log_file_dir, filename):
 
 def store_logfile(pr_full_name, pr_number, pr_id, pr_sha1, filename):
     if (pr_full_name is None or pr_number is None or pr_id is None or
-        pr_sha1 is None or filename is None):
+            pr_sha1 is None or filename is None):
         log.error("Cannot store log file (missing parameters)")
         return
 
@@ -192,10 +204,14 @@ def store_logfile(pr_full_name, pr_number, pr_id, pr_sha1, filename):
         log.error("Couldn't move log file (from: {}, to: {}".format(
             source, dest))
 
-#------------------------------------------
+# -----------------------------------------------------------------------------
 # DB RUN
-#-------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+
+
 DB_RUN_FILE = os.path.join(os.path.dirname(__file__), 'hab.db')
+
+
 def db_connect(db_file=DB_RUN_FILE):
     con = sqlite3.connect(db_file)
     return con
@@ -233,21 +249,22 @@ def db_add_build_record(payload):
 
     con = db_connect()
     cur = con.cursor()
-    sql = "SELECT pr_id FROM job WHERE pr_id = '{}' AND sha1 = '{}'".format(pr_id, pr_sha1)
+    sql = ("SELECT pr_id FROM job WHERE pr_id = '{}' AND "
+           "sha1 = '{}'".format(pr_id, pr_sha1))
     cur.execute(sql)
     r = cur.fetchall()
     if len(r) >= 1:
         log.debug("Record for pr_id/sha1 {}/{} is already in the "
-                "database".format(pr_id, pr_sha1))
+                  "database".format(pr_id, pr_sha1))
         con.commit()
         con.close()
         return
 
     pr_number = github.pr_number(payload)
     pr_full_name = github.pr_full_name(payload)
-    sql = "INSERT INTO job (pr_id, pr_number, full_name, sha1, date, payload) " + \
-            "VALUES('{}','{}','{}', '{}', datetime('now'), '{}')".format(
-                    pr_id, pr_number, pr_full_name, pr_sha1, json.dumps(payload))
+    sql = ("INSERT INTO job (pr_id, pr_number, full_name, sha1, date, payload)"
+           " VALUES('{}','{}','{}', '{}', datetime('now'), '{}')".format(
+            pr_id, pr_number, pr_full_name, pr_sha1, json.dumps(payload)))
     cur.execute(sql)
     con.commit()
     con.close()
@@ -257,8 +274,9 @@ def db_update_job(pr_id, pr_sha1, status, running_time):
     log.debug("Update record for {}/{}".format(pr_id, pr_sha1))
     con = db_connect()
     cur = con.cursor()
-    sql = "UPDATE job SET status = '{}', run_time = '{}', date = datetime('now') WHERE pr_id = '{}' AND sha1 = '{}'".format(
-                    status, running_time, pr_id, pr_sha1)
+    sql = ("UPDATE job SET status = '{}', run_time = '{}', "
+           "date = datetime('now') WHERE pr_id = '{}' AND sha1 = '{}'".format(
+            status, running_time, pr_id, pr_sha1))
     cur.execute(sql)
     con.commit()
     con.close()
@@ -267,7 +285,8 @@ def db_update_job(pr_id, pr_sha1, status, running_time):
 def db_get_payload_from_pr_id(pr_id, pr_sha1):
     con = db_connect()
     cur = con.cursor()
-    sql = "SELECT payload FROM job WHERE pr_id = '{}' AND sha1 = '{}'".format(pr_id, pr_sha1)
+    sql = ("SELECT payload FROM job WHERE pr_id = '{}' AND "
+           "sha1 = '{}'".format(pr_id, pr_sha1))
     cur.execute(sql)
     r = cur.fetchall()
     if len(r) > 1:
@@ -276,7 +295,7 @@ def db_get_payload_from_pr_id(pr_id, pr_sha1):
     con.commit()
     con.close()
     return json.loads("".join(r[0]))
-    
+
 
 def db_get_html_row(page):
     con = db_connect()
@@ -293,7 +312,8 @@ def db_get_html_row(page):
 def db_get_pr(pr_number):
     con = db_connect()
     cur = con.cursor()
-    sql = "SELECT * FROM job WHERE pr_number = '{}' ORDER BY date DESC, full_name".format(pr_number)
+    sql = ("SELECT * FROM job WHERE pr_number = '{}' ORDER BY date DESC, "
+           "full_name".format(pr_number))
     cur.execute(sql)
     r = cur.fetchall()
     con.commit()
@@ -303,11 +323,11 @@ def db_get_pr(pr_number):
 ###############################################################################
 # Utils
 ###############################################################################
-STATUS_SUCCESS  = 0
-STATUS_PENDING  = 1
-STATUS_RUNNING  = 2
-STATUS_CANCEL   = 3
-STATUS_FAIL     = 4
+STATUS_SUCCESS = 0
+STATUS_PENDING = 1
+STATUS_RUNNING = 2
+STATUS_CANCEL = 3
+STATUS_FAIL = 4
 
 d_status = {
         STATUS_SUCCESS: "Success",
@@ -327,6 +347,8 @@ def get_running_time(time_start):
 ###############################################################################
 # Jobs
 ###############################################################################
+
+
 class Job():
     """Class defining a complete Job which normally includes clone, build, flash
     and run tests on a device."""
@@ -335,7 +357,6 @@ class Job():
         self.user_initiated = user_initiated
         self.status = "Pending"
 
-
     def __str__(self):
         return "{}-{}:{}/{}".format(
                 self.pr_id(),
@@ -343,21 +364,18 @@ class Job():
                 self.pr_full_name(),
                 self.pr_number())
 
-
     def pr_number(self):
         return github.pr_number(self.payload)
-
 
     def pr_id(self):
         return github.pr_id(self.payload)
 
-
     def pr_full_name(self):
         return github.pr_full_name(self.payload)
 
-
     def pr_sha1(self):
         return github.pr_sha1(self.payload)
+
 
 class JobThread(threading.Thread):
     """Thread class with a stop() method. The thread itself has to check
@@ -368,15 +386,12 @@ regularly for the stopped() condition."""
         self._stop_event = threading.Event()
         self.job = job
 
-
     def stop(self):
         log.debug("Stopping PR {}".format(self.job.pr_number()))
         self._stop_event.set()
 
-
     def stopped(self):
         return self._stop_event.is_set()
-
 
     def start_job(self):
         global logstr
@@ -395,8 +410,9 @@ regularly for the stopped() condition."""
                 child.logfile_read = f
 
                 if yml_iter is None:
-                    store_logfile(self.job.pr_full_name(), self.job.pr_number(),
-                                  self.job.pr_id(), self.job.pr_sha1(), filename)
+                    store_logfile(self.job.pr_full_name(),
+                                  self.job.pr_number(), self.job.pr_id(),
+                                  self.job.pr_sha1(), filename)
                     continue
 
                 for i in yml_iter:
@@ -406,14 +422,15 @@ regularly for the stopped() condition."""
                     if not do_pexpect(child, c, e, t):
                         terminate_child(child)
                         log.error("job type: {} failed!".format(logtype))
-                        store_logfile(self.job.pr_full_name(), self.job.pr_number(),
-                                      self.job.pr_id(), self.job.pr_sha1(), filename)
+                        store_logfile(self.job.pr_full_name(),
+                                      self.job.pr_number(),
+                                      self.job.pr_id(), self.job.pr_sha1(),
+                                      filename)
                         return False
 
             store_logfile(self.job.pr_full_name(), self.job.pr_number(),
                           self.job.pr_id(), self.job.pr_sha1(), filename)
         return True
-
 
     def run(self):
         """This is the main function for running a complete clone, build, flash
@@ -438,7 +455,8 @@ regularly for the stopped() condition."""
             current_status = d_status[STATUS_FAIL]
 
         running_time = get_running_time(time_start)
-        log.debug("Job/{} : {} --> {}".format(current_status, self.job, running_time))
+        log.debug("Job/{} : {} --> {}".format(current_status, self.job,
+                  running_time))
         db_update_job(pr_id, pr_sha1, current_status, running_time)
 
 ###############################################################################
@@ -446,10 +464,11 @@ regularly for the stopped() condition."""
 ###############################################################################
 worker_thread = None
 
+
 class WorkerThread(threading.Thread):
     """Thread class responsible to adding and running jobs."""
-    def __init__(self, group=None, target=None, name=None,
-            args=(), kwargs=None):
+    def __init__(self, group=None, target=None, name=None, args=(),
+                 kwargs=None):
         threading.Thread.__init__(self, group=group, target=target, name=name)
         self.args = args
         self.kwargs = kwargs
@@ -458,10 +477,10 @@ class WorkerThread(threading.Thread):
         self.jt = None
         self.lock = threading.Lock()
 
-
     def user_add(self, pr_id, pr_sha1):
         if pr_id is None or pr_sha1 is None:
-            log.error("Missing pr_id or pr_sha1 when trying to submit user job")
+            log.error("Missing pr_id or pr_sha1 when trying to submit user "
+                      "job")
             return
 
         with self.lock:
@@ -476,7 +495,6 @@ class WorkerThread(threading.Thread):
             self.job_dict[pr_id_sha1] = Job(payload, True)
             db_update_job(pr_id, pr_sha1, "Pending", "N/A")
 
-
     def add(self, payload):
         """Responsible of adding new jobs the the job queue."""
         if payload is None:
@@ -488,7 +506,8 @@ class WorkerThread(threading.Thread):
         pr_sha1 = github.pr_sha1(payload)
 
         with self.lock:
-            log.info("Got GitHub initiated add {}/{} --> PR#{}".format(pr_id, pr_sha1, pr_number))
+            log.info("Got GitHub initiated add {}/{} --> PR#{}".format(
+                     pr_id, pr_sha1, pr_number))
             # Check whether the jobs in the current queue touches the same PR
             # number as this incoming request does.
             for i, elem in enumerate(self.q):
@@ -497,25 +516,30 @@ class WorkerThread(threading.Thread):
                 # jobs.
                 if (job_in_queue.pr_number() == pr_number):
                     if not job_in_queue.user_initiated:
-                        log.debug("Non user initiated job found in queue, removing {}".format(elem))
+                        log.debug("Non user initiated job found in queue, "
+                                  "removing {}".format(elem))
                         del self.q[i]
-                        db_update_job(job_in_queue.pr_id(), job_in_queue.pr_sha1(), "Cancelled(Q)", "N/A")
+                        db_update_job(job_in_queue.pr_id(),
+                                      job_in_queue.pr_sha1(),
+                                      "Cancelled(Q)", "N/A")
 
             # Check whether current job also should be stopped (i.e, same
             # PR, but _not_ user initiated).
-            if self.jt is not None and self.jt.job.pr_number() == pr_number \
-                and not self.jt.job.user_initiated:
-                    log.debug("Non user initiated job found running, stopping {}".format(self.jt.job))
-                    self.jt.stop()
+            if (self.jt is not None and
+                    self.jt.job.pr_number() == pr_number and not
+                    self.jt.job.user_initiated):
+                log.debug("Non user initiated job found running, "
+                          "stopping {}".format(self.jt.job))
+                self.jt.stop()
 
             pr_id_sha1 = "{}-{}".format(pr_id, pr_sha1)
             self.q.append(pr_id_sha1)
             new_job = Job(payload, False)
             self.job_dict[pr_id_sha1] = new_job
             db_add_build_record(new_job.payload)
-            #TODO: This shouldn't be needed, better to do the update in the db_add_build_record
+            # TODO: This shouldn't be needed, better to do the update in the
+            # db_add_build_record
             db_update_job(pr_id, pr_sha1, "Pending", "N/A")
-
 
     def cancel(self, pr_id, pr_sha1):
         force_update = True
@@ -523,15 +547,18 @@ class WorkerThread(threading.Thread):
         # Stop pending jobs
         for i, elem in enumerate(self.q):
             job_in_queue = self.job_dict[elem]
-            if job_in_queue.pr_id() == pr_id and job_in_queue.pr_sha1() == pr_sha1:
+            if (job_in_queue.pr_id() == pr_id and
+                    job_in_queue.pr_sha1() == pr_sha1):
                 log.debug("Got a stop from web {}/{}".format(pr_id, pr_sha1))
                 del self.q[i]
-                db_update_job(job_in_queue.pr_id(), job_in_queue.pr_sha1(), "Cancelled(Q)", "N/A")
+                db_update_job(job_in_queue.pr_id(), job_in_queue.pr_sha1(),
+                              "Cancelled(Q)", "N/A")
                 force_update = False
 
         # Stop the running job
         if self.jt is not None:
-            if self.jt.job.pr_id() == pr_id and self.jt.job.pr_sha1() == pr_sha1:
+            if (self.jt.job.pr_id() == pr_id and
+                    self.jt.job.pr_sha1() == pr_sha1):
                 log.debug("Got a stop from web {}/{}".format(pr_id, pr_sha1))
                 self.jt.stop()
                 force_update = False
@@ -540,12 +567,11 @@ class WorkerThread(threading.Thread):
         if force_update:
             db_update_job(pr_id, pr_sha1, "Cancelled(F)", "N/A")
 
-
     def run(self):
         """Main function taking care of running all jobs in the job queue."""
         while(True):
-            time.sleep(2)
-            #log.debug("Checking for work (queue:{})".format(self.q))
+            time.sleep(3)
+            # log.debug("Checking for work (queue:{})".format(self.q))
 
             if len(self.q) > 0:
                 with self.lock:
@@ -563,7 +589,7 @@ def initialize_worker_thread():
     """Initialize the main thread responsible for adding and running jobs."""
     global worker_thread
     # Return if thread is already running.
-    if worker_thread != None:
+    if worker_thread is not None:
         return
 
     worker_thread = WorkerThread()
@@ -574,12 +600,15 @@ def initialize_worker_thread():
 ###############################################################################
 # Logger
 ###############################################################################
+
+
 def initialize_logger():
-    LOG_FMT = "[%(levelname)s] %(filename)-16s%(funcName)s():%(lineno)d # %(message)s"
-    log.basicConfig(#filename=cfg.core_log,
-        level = log.DEBUG,
-        format = LOG_FMT,
-        filemode = 'w')
+    LOG_FMT = ("[%(levelname)s] %(filename)-16s%(funcName)s():%(lineno)d "
+               "# %(message)s")
+    log.basicConfig(  # filename=cfg.core_log,
+        level=log.DEBUG,
+        format=LOG_FMT,
+        filemode='w')
 
 
 ###############################################################################
@@ -627,6 +656,8 @@ def cancel(pr_id, pr_sha1):
 ###############################################################################
 # Debug
 ###############################################################################
+
+
 def load_payload_from_file(filename=None):
     fname = 'last_blob.json'
     payload = None
