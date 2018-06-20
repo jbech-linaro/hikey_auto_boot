@@ -2,21 +2,15 @@
 pre_clone:
 
 clone:
-        # TODO: Preferably we should have all the necessary commands for build
-        # here, just as for flash and xtest above. However I had issues with
-        # pexpect after running repo sync. So for now I'm doing all repo setup
-        # and building from this shell script instead. It works, but a bit ugly
-        # and not how it was intended to be done from the beginning.
-        - cmd: export PS1="$ "
-
-        - cmd: ls -al
-          exp: logs.db
+        - cmd: 'export PS1="$ "'
+        - cmd: cd /tmp/
+        - cmd: git clone https://github.com/jbech-linaro/jipdate
+          exp: 'Resolving deltas'
           timeout: 10
-          
-          #
-          #- cmd: /home/optee/devel/hikey_auto_boot/init_repo.sh
-          #exp: Done setting up HiKey project
-          #timeout: 120
+
+post_clone:
+
+pre_build:
 
 build:
         - cmd: cd /home/optee/devel/hikey/build
@@ -27,12 +21,6 @@ build:
           exp: [ "Done building HiKey", "Failed building HiKey" ]
           error_pos: 1 # This indicates where the errors starts in the array above
           timeout: 1200
-
-post_clone:
-
-pre_build:
-
-build:
 
 post_build:
 
@@ -55,116 +43,3 @@ pre_test:
 test:
 
 post_test:
-
-        #clone:
-        #        # TODO: Preferably we should have all the necessary commands for build
-        #        # here, just as for flash and xtest above. However I had issues with
-        #        # pexpect after running repo sync. So for now I'm doing all repo setup
-        #        # and building from this shell script instead. It works, but a bit ugly
-        #        # and not how it was intended to be done from the beginning.
-        #        - cmd: export PS1="$ "
-        #
-        #        - cmd: /home/optee/devel/hikey_auto_boot/init_repo.sh
-        #          exp: Done setting up HiKey project
-        #          timeout: 120
-        #
-        #build:
-        #        - cmd: export PS1="$ "
-        #
-        #        - cmd: cd /home/optee/devel/hikey/build
-        #
-        #        - cmd: ls hikey.mk
-        #          exp: hikey.mk
-        #
-        #        - cmd: make CFG_DRAM_SIZE_GB=1 CFG_FLASH_SIZE=4 recovery
-        #          exp: "Press enter to continue"
-        #          timeout: 10
-        #
-        #        - cmd: "" # Enter from previous expect
-        #          exp: 1. Connect USB OTG cable, the micro USB cable \(press enter\)
-        #
-        #        - cmd: "" # Enter from previous expect
-        #          exp: 2. Connect HiKey to power up \(press enter\)
-        #
-        #        - cmd: "" # Enter from previous expect
-        #          exp: "fastboot flash loader"
-        #
-        #        - cmd: "" # Send one more "enter", which OP-TEE make expects
-        #          exp: "sending 'ptable'"
-        #
-        #        - exp: "writing 'ptable'..."
-        #        - exp: "sending 'fastboot'..."
-        #        - exp: "writing 'fastboot'..."
-        #        - exp: "sending 'nvme'"
-        #        - exp: "writing 'nvme'..."
-        #        - exp: "sending 'boot'"
-        #        - exp: "writing 'boot'..."
-        #
-        #        - exp: "finished. total time:"
-        #          timeout: 30
-        #
-        #test:
-        #        - exp: "buildroot login:"
-        #          timeout: 60
-        #
-        #        - cmd: "root"
-        #          exp: "# "
-        #          timeout: 3
-        #
-        #        - cmd: "export PS1=\"root@HiKey: \""
-        #          exp: "root@HiKey: "
-        #          timeout: 10
-        #
-        #        - cmd: xtest
-        #          exp: "Run test suite with level"
-        #          timeout: 15
-        #
-        #        - exp: [ "test cases of which 0 failed", "root@HiKey: " ] # Prompt means error
-        #          error_pos: 1 # This indicates where the errors starts in the array above
-        #          timeout: 1200
-        #
-        #       # Start running the SDP tests
-        #       # TODO: HiKey UART output gets mixed, we should update the PTA/SDP tests
-        #       # to give a single final message telling whether SDP failed or not
-        #       # - cmd: xtest --sdp-basic
-        #       #   exp: "Secure Data Path basic access: NS invokes SDP TA"
-        #       #   timeout: 10
-        #
-        #       # - cmd: ""
-        #       #   exp: Test passed
-        #       #   timeout: 30
-        #
-        #       # - cmd: ""
-        #       #   exp: "Secure Data Path basic access: SDP TA invokes SDP TA"
-        #       #   timeout: 5
-        #
-        #       # - cmd: ""
-        #       #   exp: Test passed
-        #       #   timeout: 30
-        #
-        #       # - cmd: ""
-        #       #   exp: "Secure Data Path basic access: SDP TA invokes SDP pTA"
-        #       #   timeout: 5
-        #
-        #       # - cmd: ""
-        #       #   exp: Test passed
-        #       #   timeout: 30
-        #
-        #       # - cmd: ""
-        #       #   exp: "Secure Data Path basic access: NS invokes SDP pTA (shall fail)"
-        #       #   timeout: 5
-        #
-        #       # - cmd: ""
-        #       #   exp: Test passed
-        #       #   timeout: 30
-        #
-        #
-        #pre_build:
-        #        - cmd: cd /home/optee/devel/hikey/build
-        #
-        #        - cmd: ln -sf hikey.mk Makefile
-        #
-        #        - cmd: /home/optee/devel/hikey_auto_boot/build.sh
-        #          exp: [ "Done building HiKey", "Failed building HiKey" ]
-        #          error_pos: 1 # This indicates where the errors starts in the array above
-        #          timeout: 1200

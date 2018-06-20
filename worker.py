@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 from enum import Enum
+import base64
 import json
 import logging as log
 import os
@@ -85,12 +86,11 @@ def do_pexpect(child, cmd=None, exp=None, timeout=5, error_pos=1):
 
 def spawn_pexpect_child():
     rcfile = '--rcfile {}/.bashrc'.format(os.getcwd())
-    child = pexpect.spawnu('/bin/bash', ['--rcfile', rcfile])
+    child = pexpect.spawnu('/bin/bash', ['--rcfile', rcfile],  encoding='utf-8')
     return child
 
 def terminate_child(child):
     child.close()
-    #logger.store_logfile(git_name, github_nbr, filename)
 
 ################################################################################
 # SQLITE3
@@ -161,9 +161,11 @@ def db_add_log(pr_id, pr_sha1, logtype, data):
     con = db_connect_log()
     cur = con.cursor()
 
+    pr_id_sha1 = "{}-{}".format(pr_id, pr_sha1)
+
     # We have no clue whether it's a new log of just an update, therefore query
     # the database to see whether there already is something matching.
-    sql = "SELECT pr_id_sha1 FROM log WHERE pr_id_sha1 = '{}-{}'".format(pr_id, pr_sha1)
+    sql = "SELECT pr_id_sha1 FROM log WHERE pr_id_sha1 = '{}'".format(pr_id_sha1)
     cur.execute(sql)
     r = cur.fetchall()
 
@@ -171,19 +173,20 @@ def db_add_log(pr_id, pr_sha1, logtype, data):
     if type(logtype) is not str:
         logtype = logstate_to_str(logtype)
 
+    b = bytes(data, 'utf-8')
     # No match, i.e., new record
     if len(r) == 0:
         sql = "INSERT INTO log (pr_id_sha1, {}) ".format(logtype) + \
-                "VALUES('{}-{}', '{}')".format(pr_id, pr_sha1, data)
+                "VALUES('{}-{}', '{}')".format(pr_id, pr_sha1,
+                        [sqlite3.Binary(b)])
+        cur.execute(sql)
     elif len(r) == 1:
         sql = "UPDATE log SET pr_id_sha1 = '{}-{}', {} = '{}' ".format(
-                pr_id, pr_sha1, logtype, data) + \
-                "WHERE pr_id_sha1 = '{}-{}'".format(pr_id, pr_sha1)
+                pr_id, pr_sha1, logtype, [sqlite3.Binary(b)]) + \
+                        "WHERE pr_id_sha1 = '{}-{}'".format(pr_id, pr_sha1)
     else:
         log.error("Cannot store log")
 
-    log.debug(data)
-    cur.execute(sql)
     con.commit()
     con.close()
 
@@ -242,25 +245,25 @@ def initialize_db():
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     pr_id_sha1 text NOT NULL,
 
-                    pre_clone text DEFAULT "N/A",
-                    clone text DEFAULT "N/A",
-                    post_clone text DEFAULT "N/A",
+                    pre_clone BLOB,
+                    clone BLOB,
+                    post_clone BLOB,
 
-                    pre_build text DEFAULT "N/A",
-                    build text DEFAULT "N/A",
-                    post_build text DEFAULT "N/A",
+                    pre_build BLOB,
+                    build BLOB,
+                    post_build BLOB,
 
-                    pre_flash text DEFAULT "N/A",
-                    flash text DEFAULT "N/A",
-                    post_flash text DEFAULT "N/A",
+                    pre_flash BLOB,
+                    flash BLOB,
+                    post_flash BLOB,
 
-                    pre_boot text DEFAULT "N/A",
-                    boot text DEFAULT "N/A",
-                    post_boot text DEFAULT "N/A",
+                    pre_boot BLOB,
+                    boot BLOB,
+                    post_boot BLOB,
 
-                    pre_test text DEFAULT "N/A",
-                    test text DEFAULT "N/A",
-                    post_test text DEFAULT "N/A"
+                    pre_test BLOB,
+                    test BLOB,
+                    post_test BLOB
                     )
               '''
         cur.execute(sql)
@@ -409,27 +412,27 @@ regularly for the stopped() condition."""
             # Clear the log we are about to work with
             yml_iter = yml_config[section]
             child = spawn_pexpect_child()
-            f = open("tmp.log", 'w')
-            child.logfile = f
+            with open("tmp.log", 'w') as f:
+                child.logfile = f
 
-            if yml_iter is None:
-                continue
+                if yml_iter is None:
+                    log.debug("yaml: {} is empty".format(section))
+                    continue
 
-            log.debug("Dealing with yaml: {}".format(section))
-            for i in yml_iter:
-                print(i)
-                c, e, t = get_yaml_cmd(i)
+                log.debug("Dealing with yaml: {}".format(section))
+                for i in yml_iter:
+                    print(i)
+                    c, e, t = get_yaml_cmd(i)
 
-                if not do_pexpect(child, c, e, t):
-                    terminate_child(child)
-                    # TODO: Update log
-                    log.error("{} failed, quit!".format(section))
-                    f.close()
-                    return
-            f.close
+                    if not do_pexpect(child, c, e, t):
+                        terminate_child(child)
+                        # TODO: Update log
+                        log.error("{} failed, quit!".format(section))
+                        return
+
             with open("tmp.log", 'r') as f:
                 lines = "".join(f.readlines())
-                print(lines)
+                log.info(lines)
                 db_add_log(self.job.pr_id(), self.job.pr_sha1(), section, lines)
 
 
@@ -569,8 +572,8 @@ class WorkerThread(threading.Thread):
     def run(self):
         """Main function taking care of running all jobs in the job queue."""
         while(True):
-            time.sleep(3)
-            log.debug("Checking for work (queue:{})".format(self.q))
+            time.sleep(2)
+            #log.debug("Checking for work (queue:{})".format(self.q))
 
             if len(self.q) > 0:
                 with self.lock:
