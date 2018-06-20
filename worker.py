@@ -181,9 +181,10 @@ def store_logfile(pr_full_name, pr_number, pr_id, pr_sha1, filename):
     try:
         os.rename(source, dest)
     except:
-        log.error("Couldn't move log file")
+        log.error("Couldn't move log file (from: {}, to: {}".format(
+            source, dest))
 
-#-------------------------------------------------------------------------------
+#------------------------------------------
 # DB RUN
 #-------------------------------------------------------------------------------
 DB_RUN_FILE = os.path.join(os.path.dirname(__file__), 'hab.db')
@@ -354,7 +355,8 @@ regularly for the stopped() condition."""
             # Clear the log we are about to work with
             yml_iter = yml_config[section]
             child = spawn_pexpect_child()
-            with open("tmp.log", 'w') as f:
+            filename = "{}.log".format(section)
+            with open(filename, 'w') as f:
                 child.logfile = f
 
                 if yml_iter is None:
@@ -372,7 +374,6 @@ regularly for the stopped() condition."""
                         log.error("{} failed, quit!".format(section))
                         return
 
-            filename = "{}.log".format(section)
             store_logfile(self.job.pr_full_name(), self.job.pr_number(),
                           self.job.pr_id(), self.job.pr_sha1(), filename)
 

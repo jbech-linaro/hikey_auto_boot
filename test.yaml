@@ -13,21 +13,13 @@ post_clone:
 pre_build:
 
 build:
-        - cmd: cd /home/optee/devel/hikey/build
-
-        - cmd: ln -sf hikey.mk Makefile
-
-        - cmd: /home/optee/devel/hikey_auto_boot/build.sh
-          exp: [ "Done building HiKey", "Failed building HiKey" ]
-          error_pos: 1 # This indicates where the errors starts in the array above
-          timeout: 1200
 
 post_build:
 
 pre_flash:
 
 flash:
-        - cmd: sleep 5
+        - cmd: cat test.yaml
           exp: '\$ '
 
 post_flash:
