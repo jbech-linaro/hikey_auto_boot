@@ -87,29 +87,6 @@ def terminate_child(child):
 ###############################################################################
 
 
-class LogType(Enum):
-    PRE_CLONE = 0
-    CLONE = 1
-    POST_CLONE = 2
-
-    PRE_BUILD = 3
-    BUILD = 4
-    POST_BUILD = 5
-
-    PRE_FLASH = 6
-    FLASH = 7
-    POST_FLASH = 8
-
-    PRE_BOOT = 9
-    BOOT = 10
-    POST_BOOT = 11
-
-    PRE_TEST = 12
-    TEST = 13
-    POST_TEST = 14
-
-# This must stay in sync with class LogType above!
-# TODO: Should probably replace with a dict instead!
 logstr = [
     "pre_clone",
     "clone",
@@ -624,7 +601,8 @@ def initialize_worker_thread():
 
 def initialize_logger():
     LOG_FMT = ("[%(levelname)s] %(funcName)s():%(lineno)d   %(message)s")
-    log.basicConfig(  # filename=cfg.core_log,
+    log.basicConfig(
+        filename="core.log",
         level=log.DEBUG,
         format=LOG_FMT,
         filemode='w')
