@@ -444,11 +444,20 @@ regularly for the stopped() condition."""
                                       self.job.pr_number(),
                                       self.job.pr_id(), self.job.pr_sha1(),
                                       filename)
-                        return False
+                        return STATUS_FAIL
+
+                    if self.stopped():
+                        log.debug("job type: {} cancelled!".format(logtype))
+                        store_logfile(self.job.pr_full_name(),
+                                      self.job.pr_number(),
+                                      self.job.pr_id(), self.job.pr_sha1(),
+                                      filename)
+                        return STATUS_CANCEL
+
 
             store_logfile(self.job.pr_full_name(), self.job.pr_number(),
                           self.job.pr_id(), self.job.pr_sha1(), filename)
-        return True
+        return STATUS_SUCCESS
 
     def run(self):
         """This is the main function for running a complete clone, build, flash
@@ -467,11 +476,9 @@ regularly for the stopped() condition."""
         db_update_job(pr_id, pr_sha1, current_status, "N/A")
 
         # 2. Run
-        if self.start_job():
-            current_status = d_status[STATUS_SUCCESS]
-        else:
-            current_status = d_status[STATUS_FAIL]
+        current_status = d_status[self.start_job()]
 
+        # 3. Wrap up the job
         running_time = get_running_time(time_start)
         log.debug("Job/{} : {} --> {}".format(current_status, self.job,
                   running_time))
@@ -589,7 +596,7 @@ class WorkerThread(threading.Thread):
         """Main function taking care of running all jobs in the job queue."""
         while(True):
             time.sleep(3)
-            # log.debug("Checking for work (queue:{})".format(self.q))
+            log.debug("Checking for work (queue:{})".format(self.q))
 
             if len(self.q) > 0:
                 with self.lock:
