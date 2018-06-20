@@ -470,14 +470,10 @@ regularly for the stopped() condition."""
         pr_id = self.job.pr_id()
         pr_sha1 = self.job.pr_sha1()
 
-        # 1. Insert initial record in the database
-        db_add_build_record(self.job.payload)
         db_update_job(pr_id, pr_sha1, current_status, "N/A")
 
-        # 2. Run
         current_status = d_status[self.start_job()]
 
-        # 3. Wrap up the job
         running_time = get_running_time(time_start)
         log.debug("Job/{} : {} --> {}".format(current_status, self.job,
                   running_time))
@@ -545,7 +541,7 @@ class WorkerThread(threading.Thread):
                         del self.q[i]
                         db_update_job(job_in_queue.pr_id(),
                                       job_in_queue.pr_sha1(),
-                                      "Cancelled(Q)", "N/A")
+                                      d_status[STATUS_CANCEL], "N/A")
 
             # Check whether current job also should be stopped (i.e, same
             # PR, but _not_ user initiated).
@@ -576,7 +572,7 @@ class WorkerThread(threading.Thread):
                 log.debug("Got a stop from web {}/{}".format(pr_id, pr_sha1))
                 del self.q[i]
                 db_update_job(job_in_queue.pr_id(), job_in_queue.pr_sha1(),
-                              "Cancelled(Q)", "N/A")
+                              d_status[STATUS_CANCEL], "N/A")
                 force_update = False
 
         # Stop the running job
@@ -589,7 +585,7 @@ class WorkerThread(threading.Thread):
 
         # If it wasn't in the queue nor running, then just update the status
         if force_update:
-            db_update_job(pr_id, pr_sha1, "Cancelled(F)", "N/A")
+            db_update_job(pr_id, pr_sha1, d_status[STATUS_CANCEL], "N/A")
 
     def run(self):
         """Main function taking care of running all jobs in the job queue."""
