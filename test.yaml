@@ -1,6 +1,8 @@
 # List of all command needed to flash a HiKey 620 4GB device
 pre_clone:
         - cmd: mkdir -p /tmp/test
+        - cmd: echo $?
+          exp: '0'
 
 clone:
         - cmd: cd /tmp/test
@@ -10,29 +12,42 @@ clone:
         - cmd: repo sync -j3
           exp: 'Fetching projects'
           timeout: 30
+        - cmd: echo $?
+          exp: '0'
 
 post_clone:
 
 pre_build:
+        - cmd: mkdir -p /tmp/test/optee_client/build
+        - cmd: echo $?
+          exp: '0'
+        - cmd: export PATH=:/home/optee/devel/reference/toolchains/aarch32/bin:$PATH
+        - cmd: cd /tmp/test/optee_client/build
+        - cmd: cmake -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc -DCMAKE_INSTALL_PREFIX=/tmp/optee_client/install ..
+          exp: 'Build files have been written to'
+          timeout: 5
+        - cmd: echo $?
+          exp: '0'
+
 
 build:
+        - cmd: cd /tmp/test/optee_client/build
+        - cmd: echo $?
+          exp: '0'
         - cmd: export PATH=:/home/optee/devel/reference/toolchains/aarch32/bin:$PATH
-        - cmd: cd /tmp/test/optee_client
-          exp: 'HAB '
-        - cmd: mkdir -p build
-        - cmd: cd build
-          exp: 'HAB '
-        - cmd: 'cmake -DCMAKE_C_COMPILER="arm-linux-gnueabihf-gcc" -DCMAKE_INSTALL_PREFIX="/tmp/optee_client/install" ..'
-          exp: 'Build files have been written to'
-          timeout: 10
         - cmd: make
           exp: 'Built target tee-supplicant'
+          timeout: 15
+        - cmd: echo $?
+          exp: '0'
 
 post_build:
         - cmd: cd /tmp/test/optee_client/build
           exp: 'HAB '
         - cmd: make install
-          exp: 'Installing: /tmp/optee_client/install/include/teec_trace.h'
+        - cmd: echo $?
+          exp: '0'
+        - exp: 'HAB '
 
 pre_flash:
 

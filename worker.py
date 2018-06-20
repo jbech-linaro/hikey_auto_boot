@@ -61,7 +61,7 @@ def do_pexpect(child, cmd=None, exp=None, timeout=5, error_pos=1):
             e, timeout, error_pos))
 
         r = child.expect(e, timeout=timeout)
-        log.debug("Got: {} (value above {} is considered an error)".format(
+        log.debug("Got: {} (value >= {} is considered an error)".format(
             r, error_pos))
         if r >= error_pos:
             return False
