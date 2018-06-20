@@ -27,30 +27,6 @@ signal.signal(signal.SIGINT, signal_handler)
 ################################################################################
 # Pexpect
 ################################################################################
-
-work_logs = {}
-
-class FileAdapter(object):
-    def __init__(self):
-        log.info("Creating FileAdapter!")
-
-    def set_logtype(self, logtype):
-        self.logtype = logtype
-
-    def write(self, data):
-        global work_logs
-        # NOTE: data can be a partial line, multiple lines
-        #data = data.strip() # ignore leading/trailing whitespace
-        print("----->  {}".format(data))
-        if work_logs[self.logtype] is not None:
-            work_logs[self.logtype] += data
-        else:
-            work_logs[self.logtype] = data
-
-    def flush(self):
-        #print("---- LET ME FLUSH ----")
-        pass
-
 def get_yaml_cmd(yml_iter):
     cmd = yml_iter.get('cmd', None)
     exp = yml_iter.get('exp', None)
@@ -343,7 +319,6 @@ regularly for the stopped() condition."""
 
     def start_job(self):
         global logstr
-        global work_logs
 
         log.info("Start clone, build ... sequence for {}".format(self.job))
         with open("test.yaml", 'r') as yml:
