@@ -62,7 +62,8 @@ def stop_page(pr_id, pr_sha1):
 def show_log(owner, project, pr_number, pr_id, pr_sha1):
     pr_full_name = "{}/{}".format(owner, project)
     logs = worker.get_logs(pr_full_name, pr_number, pr_id, pr_sha1)
-    return render_template('job.html', pr_id=pr_id, pr_sha1=pr_sha1, logs=logs)
+    return render_template('job.html', pr_full_name=pr_full_name,
+            pr_number=pr_number, pr_id=pr_id, pr_sha1=pr_sha1, logs=logs)
 
 @app.route('/payload', methods=['POST'])
 def payload():
