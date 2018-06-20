@@ -145,68 +145,43 @@ def logstate_to_str(s):
     return logstr[s.value]
 
 #-------------------------------------------------------------------------------
-# DB LOG
+# Log handling
 #-------------------------------------------------------------------------------
-DB_LOG_FILE = os.path.join(os.path.dirname(__file__), 'logs.db')
-
-def db_connect_log(db_file=DB_LOG_FILE):
-    con = sqlite3.connect(db_file)
-    return con
-
 def db_add_log(pr_id, pr_sha1, logtype, data):
     if pr_id == 0 or pr_sha1 == 0:
         log.error("Trying to add log with no pr_id or pr_sha1!")
         return
-
-    con = db_connect_log()
-    cur = con.cursor()
-
-    pr_id_sha1 = "{}-{}".format(pr_id, pr_sha1)
-
-    # We have no clue whether it's a new log of just an update, therefore query
-    # the database to see whether there already is something matching.
-    sql = "SELECT pr_id_sha1 FROM log WHERE pr_id_sha1 = '{}'".format(pr_id_sha1)
-    cur.execute(sql)
-    r = cur.fetchall()
-
-    # With this way we can accept both Enum as well as strings
-    if type(logtype) is not str:
-        logtype = logstate_to_str(logtype)
-
-    b = bytes(data, 'utf-8')
-    # No match, i.e., new record
-    if len(r) == 0:
-        sql = "INSERT INTO log (pr_id_sha1, {}) ".format(logtype) + \
-                "VALUES('{}-{}', '{}')".format(pr_id, pr_sha1,
-                        [sqlite3.Binary(b)])
-        cur.execute(sql)
-    elif len(r) == 1:
-        sql = "UPDATE log SET pr_id_sha1 = '{}-{}', {} = '{}' ".format(
-                pr_id, pr_sha1, logtype, [sqlite3.Binary(b)]) + \
-                        "WHERE pr_id_sha1 = '{}-{}'".format(pr_id, pr_sha1)
-    else:
-        log.error("Cannot store log")
-
-    con.commit()
-    con.close()
+    # TODO: Implement
 
 def db_get_log(pr_id, pr_sha1):
     if pr_id == 0 or pr_sha1 == 0:
         log.error("Trying to get a log with no pr_id or pr_sha1!")
         return
 
-    con = db_connect_log()
-    cur = con.cursor()
-    sql = "SELECT * FROM log WHERE pr_id_sha1 = '{}-{}'".format(pr_id, pr_sha1)
-    cur.execute(sql)
-    r = cur.fetchall()
-    con.commit()
-    con.close()
-    if len(r) != 1:
-        return None
-    else:
-        #log.debug("Returning log: {}".format(r[0]))
-        return r[0]
+    # TODO: Implement
+    return r[0]
+
+def store_logfile(pr_full_name, pr_number, pr_id, pr_sha1, filename):
+    if (pr_full_name is None or pr_number is None or pr_id is None or
+        pr_sha1 is None or filename is None):
+        log.error("Cannot store log file (missing parameters)")
+        return
+
+    log_file_dir = "{p}/logs/{fn}/{n}/{i}/{s}".format(
+            p=os.getcwd(), fn=pr_full_name, n=pr_number, i=pr_id, s=pr_sha1)
+
+    try:
+        os.stat(log_file_dir)
+    except:
+        os.makedirs(log_file_dir)
+
+    source = "{d}/{f}".format(d=os.getcwd(), f=filename)
+    dest = "{d}/{f}".format(d=log_file_dir, f=filename)
+
+    try:
+        os.rename(source, dest)
+    except:
+        log.error("Couldn't move log file")
 
 #-------------------------------------------------------------------------------
 # DB RUN
@@ -232,39 +207,6 @@ def initialize_db():
                     run_time text DEFAULT "N/A",
                     status text DEFAULT Pending,
                     payload text NOT NULL)
-              '''
-        cur.execute(sql)
-        con.commit()
-        con.close()
-
-    if not os.path.isfile(DB_LOG_FILE):
-        con = db_connect_log()
-        cur = con.cursor()
-        sql = '''
-                CREATE TABLE log (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    pr_id_sha1 text NOT NULL,
-
-                    pre_clone BLOB,
-                    clone BLOB,
-                    post_clone BLOB,
-
-                    pre_build BLOB,
-                    build BLOB,
-                    post_build BLOB,
-
-                    pre_flash BLOB,
-                    flash BLOB,
-                    post_flash BLOB,
-
-                    pre_boot BLOB,
-                    boot BLOB,
-                    post_boot BLOB,
-
-                    pre_test BLOB,
-                    test BLOB,
-                    post_test BLOB
-                    )
               '''
         cur.execute(sql)
         con.commit()
@@ -430,10 +372,9 @@ regularly for the stopped() condition."""
                         log.error("{} failed, quit!".format(section))
                         return
 
-            with open("tmp.log", 'r') as f:
-                lines = "".join(f.readlines())
-                log.info(lines)
-                db_add_log(self.job.pr_id(), self.job.pr_sha1(), section, lines)
+            filename = "{}.log".format(section)
+            store_logfile(self.job.pr_full_name(), self.job.pr_number(),
+                          self.job.pr_id(), self.job.pr_sha1(), filename)
 
 
     def run(self):
