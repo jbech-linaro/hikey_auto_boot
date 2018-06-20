@@ -38,7 +38,6 @@ def get_yaml_cmd(yml_iter):
 def do_pexpect(child, cmd=None, exp=None, timeout=5, error_pos=1):
     if cmd is not None:
         log.debug("Sending: {}".format(cmd))
-        log.debug("         {}".format(type(cmd)))
         child.sendline(cmd)
 
     if exp is not None:
@@ -52,11 +51,10 @@ def do_pexpect(child, cmd=None, exp=None, timeout=5, error_pos=1):
             e.append(exp)
             e.append(pexpect.TIMEOUT)
 
-        print("Expecting: {} (timeout={}, error={})".format(e, timeout, error_pos))
+        log.debug("Expecting: {} (timeout={}, error={})".format(e, timeout, error_pos))
         r = child.expect(e, timeout=timeout)
-        print("Got: {} (error at {})".format(r, error_pos))
+        log.debug("Got: {} (value above {} is considered an error)".format(r, error_pos))
         if r >= error_pos:
-            log.error("Returning false")
             return False
 
     return True
@@ -157,15 +155,12 @@ def read_log(log_file_dir, filename):
     try:
         ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
         with open(log_file, 'r') as f:
-            # Let's remove ansi escape characters
+            # Let's remove ANSI escape characters
             log = ansi_escape.sub('', f.read())
     except IOError:
         pass
 
-    # Must decode to UTF otherwise there is a risk for a UnicodeDecodeError
-    # exception when trying to access the log from the web-browser.
     return log
-
 
 def store_logfile(pr_full_name, pr_number, pr_id, pr_sha1, filename):
     if (pr_full_name is None or pr_number is None or pr_id is None or
@@ -297,6 +292,20 @@ def db_get_pr(pr_number):
 ################################################################################
 # Utils
 ################################################################################
+STATUS_SUCCESS  = 0
+STATUS_PENDING  = 1
+STATUS_RUNNING  = 2
+STATUS_CANCEL   = 3
+STATUS_FAIL     = 4
+
+d_status = {
+        STATUS_SUCCESS: "Success",
+        STATUS_PENDING: "Pending",
+        STATUS_RUNNING: "Running",
+        STATUS_CANCEL: "Cancelled",
+        STATUS_FAIL: "Failed"
+        }
+
 def get_running_time(time_start):
     """Returns the running time on format: <hours>h:<minutes>m:<seconds>s."""
     m, s = divmod(time.time() - time_start, 60)
@@ -357,72 +366,60 @@ regularly for the stopped() condition."""
             yml_config = yaml.load(yml)
 
         # Loop all defined values
-        for section in logstr:
+        for logtype in logstr:
             # Clear the log we are about to work with
-            yml_iter = yml_config[section]
+            yml_iter = yml_config[logtype]
             child = spawn_pexpect_child()
-            filename = "{}.log".format(section)
+            filename = "{}.log".format(logtype)
             with open(filename, 'w') as f:
                 child.logfile_read = f
 
                 if yml_iter is None:
-                    log.debug("yaml: {} is empty".format(section))
                     store_logfile(self.job.pr_full_name(), self.job.pr_number(),
                                   self.job.pr_id(), self.job.pr_sha1(), filename)
                     continue
 
-                log.debug("Dealing with yaml: {}".format(section))
                 for i in yml_iter:
                     print(i)
                     c, e, t = get_yaml_cmd(i)
 
                     if not do_pexpect(child, c, e, t):
                         terminate_child(child)
-                        # TODO: Update log
-                        log.error("{} failed, quit!".format(section))
+                        log.error("job type: {} failed!".format(logtype))
                         store_logfile(self.job.pr_full_name(), self.job.pr_number(),
                                       self.job.pr_id(), self.job.pr_sha1(), filename)
-                        return
+                        return False
 
             store_logfile(self.job.pr_full_name(), self.job.pr_number(),
                           self.job.pr_id(), self.job.pr_sha1(), filename)
+        return True
 
 
     def run(self):
         """This is the main function for running a complete clone, build, flash
         and test job."""
         global job_running
+        current_status = d_status[STATUS_RUNNING]
 
-        log.debug("START Job : {}".format(self.job))
+        log.debug("Job/{} : {}".format(current_status, self.job))
         time_start = time.time()
 
-        # 1. Insert initial record in the database
         pr_id = self.job.pr_id()
         pr_sha1 = self.job.pr_sha1()
-        # This will fail when running with test data, since there is the unique
-        # constrain in the database.
+
+        # 1. Insert initial record in the database
         db_add_build_record(self.job.payload)
-        db_update_job(pr_id, pr_sha1, "Running", "N/A")
+        db_update_job(pr_id, pr_sha1, current_status, "N/A")
 
         # 2. Run
-        self.start_job()
+        if self.start_job():
+            current_status = d_status[STATUS_SUCCESS]
+        else:
+            current_status = d_status[STATUS_FAIL]
 
-        # 2. Run (fake) job
-        #states = [ LogType.CLONE, LogType.BUILD, LogType.FLASH, LogType.BOOT, LogType.TEST ]
-        #for s in states:
-        #    db_add_log(pr_id, pr_sha1, s, "This is my log from {}.".format(logstate_to_str(s)))
-        #    for i in range(0, 12):
-        #        time.sleep(random.randint(0, 5))
-        #        log.debug("Running Job : {}[{}] \nqueue -> {}".format(self.job, i, worker_thread.q))
-        #        if self.stopped():
-        #            log.debug("STOP Job : {}".format(self.job))
-        #            running_time = get_running_time(time_start)
-        #            db_update_job(pr_id, pr_sha1, "Cancelled(R)", running_time)
-        #            return
         running_time = get_running_time(time_start)
-        log.debug("END   Job : {} --> {}".format(self.job, running_time))
-        # TODO: Success should probably be a variable instead
-        db_update_job(pr_id, pr_sha1, "Success", running_time)
+        log.debug("Job/{} : {} --> {}".format(current_status, self.job, running_time))
+        db_update_job(pr_id, pr_sha1, current_status, running_time)
 
 ################################################################################
 # Worker
