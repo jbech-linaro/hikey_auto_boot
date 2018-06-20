@@ -22,13 +22,17 @@ build:
         - cmd: mkdir -p build
         - cmd: cd build
           exp: 'HAB '
-        - cmd: cmake -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc ..
+        - cmd: 'cmake -DCMAKE_C_COMPILER="arm-linux-gnueabihf-gcc" -DCMAKE_INSTALL_PREFIX="/tmp/optee_client/install" ..'
           exp: 'Build files have been written to'
           timeout: 10
         - cmd: make
           exp: 'Built target tee-supplicant'
 
 post_build:
+        - cmd: cd /tmp/test/optee_client/build
+          exp: 'HAB '
+        - cmd: make install
+          exp: 'Installing: /tmp/optee_client/install/include/teec_trace.h'
 
 pre_flash:
 
