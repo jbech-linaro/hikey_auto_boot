@@ -87,32 +87,39 @@ def terminate_child(child):
 ###############################################################################
 
 
-logstr = [
-    "pre_clone",
-    "clone",
-    "post_clone",
+LOG_PRE_CLONE = 0
+LOG_CLONE = 1
+LOG_POST_CLONE = 2
+LOG_PRE_BUILD = 3
+LOG_BUILD = 4
+LOG_POST_BUILD = 5
+LOG_PRE_FLASH = 6
+LOG_FLASH = 7
+LOG_POST_FLASH = 8
+LOG_PRE_BOOT = 9
+LOG_BOOT = 10
+LOG_POST_BOOT = 11
+LOG_PRE_TEST = 12
+LOG_TEST = 13
+LOG_POST_TEST = 14
 
-    "pre_build",
-    "build",
-    "post_build",
-
-    "pre_flash",
-    "flash",
-    "post_flash",
-
-    "pre_boot",
-    "boot",
-    "post_boot",
-
-    "pre_test",
-    "test",
-    "post_test"]
-
-
-def logstate_to_str(s):
-    """Getting the string corresponding to the value in the database."""
-    global logstr
-    return logstr[s.value]
+d_logstr = {
+        LOG_PRE_CLONE: "pre_clone",
+        LOG_CLONE: "clone",
+        LOG_POST_CLONE: "post_clone",
+        LOG_PRE_BUILD: "pre_build",
+        LOG_BUILD: "build",
+        LOG_POST_BUILD: "post_build",
+        LOG_PRE_FLASH: "pre_flash",
+        LOG_FLASH: "flash",
+        LOG_POST_FLASH: "post_flash",
+        LOG_PRE_BOOT: "pre_boot",
+        LOG_BOOT: "boot",
+        LOG_POST_BOOT: "post_boot",
+        LOG_PRE_TEST: "pre_test",
+        LOG_TEST: "test",
+        LOG_POST_TEST: "post_test"
+        }
 
 # -----------------------------------------------------------------------------
 # Log handling
@@ -131,7 +138,7 @@ def get_logs(pr_full_name, pr_number, pr_id, pr_sha1):
     log.debug("Getting logs from {}".format(log_file_dir))
 
     logs = {}
-    for logtype in logstr:
+    for key, logtype in d_logstr.items():
         filename = "{}.log".format(logtype)
         logs[logtype] = read_log(log_file_dir, filename)
 
@@ -166,8 +173,8 @@ def clear_logfiles(pr_full_name, pr_number, pr_id, pr_sha1):
     log_file_dir = "{p}/logs/{fn}/{n}/{i}/{s}".format(
             p=os.getcwd(), fn=pr_full_name, n=pr_number, i=pr_id, s=pr_sha1)
 
-    for f in logstr:
-        full_filename = "{}/{}.log".format(log_file_dir, f)
+    for key, logtype in d_logstr.items():
+        full_filename = "{}/{}.log".format(log_file_dir, logtype)
         if os.path.isfile(full_filename):
             os.remove(full_filename)
 
@@ -383,7 +390,7 @@ regularly for the stopped() condition."""
         return self._stop_event.is_set()
 
     def start_job(self):
-        global logstr
+        global d_logstr
 
         log.info("Start clone, build ... sequence for {}".format(self.job))
         with open("test.yaml", 'r') as yml:
@@ -396,7 +403,7 @@ regularly for the stopped() condition."""
                        self.job.pr_sha1())
 
         # Loop all defined values
-        for logtype in logstr:
+        for k, logtype in d_logstr.items():
             # Clear the log we are about to work with
             yml_iter = yml_config[logtype]
             child = spawn_pexpect_child()

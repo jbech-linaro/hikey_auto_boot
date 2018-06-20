@@ -63,6 +63,10 @@ def main():
     #print("I got:\n{}".format(log))
     a, b, c = ret_many()
     print("{}, {}, {}".format(a, b, c))
+    d = {1: "a", 2: "b", 3: "c"}
+    for k, v in d.items():
+        print(v)
+
 
 if __name__ == "__main__":
     main()
