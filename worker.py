@@ -63,6 +63,9 @@ def do_pexpect(child, cmd=None, exp=None, timeout=5, error_pos=1):
 def spawn_pexpect_child():
     rcfile = '--rcfile {}/.bashrc'.format(os.getcwd())
     child = pexpect.spawnu('/bin/bash', ['--rcfile', rcfile],  encoding='utf-8')
+    child.logfile_read = sys.stdout
+    child.sendline('export PS1="HAB $ "')
+    child.expect("HAB")
     return child
 
 def terminate_child(child):
@@ -357,7 +360,7 @@ regularly for the stopped() condition."""
             child = spawn_pexpect_child()
             filename = "{}.log".format(section)
             with open(filename, 'w') as f:
-                child.logfile = f
+                child.logfile_read = f
 
                 if yml_iter is None:
                     log.debug("yaml: {} is empty".format(section))
@@ -372,6 +375,8 @@ regularly for the stopped() condition."""
                         terminate_child(child)
                         # TODO: Update log
                         log.error("{} failed, quit!".format(section))
+                        store_logfile(self.job.pr_full_name(), self.job.pr_number(),
+                                      self.job.pr_id(), self.job.pr_sha1(), filename)
                         return
 
             store_logfile(self.job.pr_full_name(), self.job.pr_number(),

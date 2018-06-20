@@ -1,26 +1,38 @@
 # List of all command needed to flash a HiKey 620 4GB device
 pre_clone:
+        - cmd: mkdir -p /tmp/test
 
 clone:
-        - cmd: 'export PS1="$ "'
-        - cmd: cd /tmp/
-        - cmd: git clone https://github.com/jbech-linaro/jipdate
-          exp: 'Resolving deltas'
-          timeout: 10
+        - cmd: cd /tmp/test
+        - cmd: /home/optee/bin/repo init -u https://github.com/jbech-linaro/manifest.git -b test
+          exp: 'repo has been initialized in'
+          timeout: 20
+        - cmd: repo sync -j3
+          exp: 'Fetching projects'
+          timeout: 30
 
 post_clone:
 
 pre_build:
 
 build:
+        - cmd: export PATH=:/home/optee/devel/reference/toolchains/aarch32/bin:$PATH
+        - cmd: cd /tmp/test/optee_client
+          exp: 'HAB '
+        - cmd: mkdir -p build
+        - cmd: cd build
+          exp: 'HAB '
+        - cmd: cmake -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc ..
+          exp: 'Build files have been written to'
+          timeout: 10
+        - cmd: make
+          exp: 'Built target tee-supplicant'
 
 post_build:
 
 pre_flash:
 
 flash:
-        - cmd: cat test.yaml
-          exp: '\$ '
 
 post_flash:
 
