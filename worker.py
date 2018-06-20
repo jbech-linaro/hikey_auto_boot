@@ -284,7 +284,7 @@ def db_add_build_record(payload):
 
 
 def db_update_job(pr_id, pr_sha1, status, running_time):
-    log.debug("Update record for {}/{}".format(pr_id, pr_sha1))
+    log.debug("Update status to {} for {}/{}".format(status, pr_id, pr_sha1))
     con = db_connect()
     cur = con.cursor()
     sql = ("UPDATE job SET status = '{}', run_time = '{}', "
@@ -368,7 +368,6 @@ class Job():
     def __init__(self, payload, user_initiated=False):
         self.payload = payload
         self.user_initiated = user_initiated
-        self.status = "Pending"
 
     def __str__(self):
         return "{}-{}:{}/{}".format(
@@ -518,7 +517,7 @@ class WorkerThread(threading.Thread):
             pr_id_sha1 = "{}-{}".format(pr_id, pr_sha1)
             self.q.append(pr_id_sha1)
             self.job_dict[pr_id_sha1] = Job(payload, True)
-            db_update_job(pr_id, pr_sha1, "Pending", "N/A")
+            db_update_job(pr_id, pr_sha1, d_status[STATUS_PENDING], "N/A")
 
     def add(self, payload):
         """Responsible of adding new jobs the the job queue."""
@@ -564,7 +563,7 @@ class WorkerThread(threading.Thread):
             db_add_build_record(new_job.payload)
             # TODO: This shouldn't be needed, better to do the update in the
             # db_add_build_record
-            db_update_job(pr_id, pr_sha1, "Pending", "N/A")
+            db_update_job(pr_id, pr_sha1, d_status[STATUS_PENDING], "N/A")
 
     def cancel(self, pr_id, pr_sha1):
         force_update = True
@@ -596,7 +595,7 @@ class WorkerThread(threading.Thread):
         """Main function taking care of running all jobs in the job queue."""
         while(True):
             time.sleep(3)
-            log.debug("Checking for work (queue:{})".format(self.q))
+            print("Checking for work (queue:{})".format(self.q))
 
             if len(self.q) > 0:
                 with self.lock:
