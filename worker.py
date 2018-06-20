@@ -17,23 +17,25 @@ import yaml
 
 import github
 
-################################################################################
+###############################################################################
 # Sigint
-################################################################################
+###############################################################################
 def signal_handler(signal, frame):
     log.debug("Gracefully killed!")
     sys.exit(0)
 
+
 signal.signal(signal.SIGINT, signal_handler)
-################################################################################
+###############################################################################
 # Pexpect
-################################################################################
+###############################################################################
 def get_yaml_cmd(yml_iter):
     cmd = yml_iter.get('cmd', None)
     exp = yml_iter.get('exp', None)
     to = yml_iter.get('timeout', 3)
     log.debug("cmd: {}, exp: {}, timeout: {}".format(cmd, exp, to))
     return cmd, exp, to
+
 
 def do_pexpect(child, cmd=None, exp=None, timeout=5, error_pos=1):
     if cmd is not None:
@@ -59,6 +61,7 @@ def do_pexpect(child, cmd=None, exp=None, timeout=5, error_pos=1):
 
     return True
 
+
 def spawn_pexpect_child():
     rcfile = '--rcfile {}/.bashrc'.format(os.getcwd())
     child = pexpect.spawnu('/bin/bash', ['--rcfile', rcfile],  encoding='utf-8')
@@ -67,12 +70,13 @@ def spawn_pexpect_child():
     child.expect("HAB")
     return child
 
+
 def terminate_child(child):
     child.close()
 
-################################################################################
+###############################################################################
 # SQLITE3
-################################################################################
+###############################################################################
 class LogType(Enum):
     PRE_CLONE =     0
     CLONE =         1
@@ -117,14 +121,15 @@ logstr = [
     "test",
     "post_test" ]
 
+
 def logstate_to_str(s):
     """Getting the string corresponding to the value in the database."""
     global logstr
     return logstr[s.value]
 
-#-------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Log handling
-#-------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 def get_logs(pr_full_name, pr_number, pr_id, pr_sha1):
     if (pr_full_name is None or pr_number is None or pr_id is None or
         pr_sha1 is None):
@@ -142,6 +147,7 @@ def get_logs(pr_full_name, pr_number, pr_id, pr_sha1):
         logs[logtype] = read_log(log_file_dir, filename)
 
     return logs
+
 
 def read_log(log_file_dir, filename):
     if log_file_dir is None or filename is None:
@@ -161,6 +167,7 @@ def read_log(log_file_dir, filename):
         pass
 
     return log
+
 
 def store_logfile(pr_full_name, pr_number, pr_id, pr_sha1, filename):
     if (pr_full_name is None or pr_number is None or pr_id is None or
@@ -214,6 +221,7 @@ def initialize_db():
         con.commit()
         con.close()
 
+
 def db_add_build_record(payload):
     pr_id = github.pr_id(payload)
     pr_sha1 = github.pr_sha1(payload)
@@ -244,6 +252,7 @@ def db_add_build_record(payload):
     con.commit()
     con.close()
 
+
 def db_update_job(pr_id, pr_sha1, status, running_time):
     log.debug("Update record for {}/{}".format(pr_id, pr_sha1))
     con = db_connect()
@@ -253,6 +262,7 @@ def db_update_job(pr_id, pr_sha1, status, running_time):
     cur.execute(sql)
     con.commit()
     con.close()
+
 
 def db_get_payload_from_pr_id(pr_id, pr_sha1):
     con = db_connect()
@@ -279,6 +289,7 @@ def db_get_html_row(page):
     con.close()
     return r
 
+
 def db_get_pr(pr_number):
     con = db_connect()
     cur = con.cursor()
@@ -289,9 +300,9 @@ def db_get_pr(pr_number):
     con.close()
     return r
 
-################################################################################
+###############################################################################
 # Utils
-################################################################################
+###############################################################################
 STATUS_SUCCESS  = 0
 STATUS_PENDING  = 1
 STATUS_RUNNING  = 2
@@ -306,15 +317,16 @@ d_status = {
         STATUS_FAIL: "Failed"
         }
 
+
 def get_running_time(time_start):
     """Returns the running time on format: <hours>h:<minutes>m:<seconds>s."""
     m, s = divmod(time.time() - time_start, 60)
     h, m = divmod(m, 60)
     return "{}h:{:02d}m:{:02d}s".format(int(h), int(m), int(s))
 
-################################################################################
+###############################################################################
 # Jobs
-################################################################################
+###############################################################################
 class Job():
     """Class defining a complete Job which normally includes clone, build, flash
     and run tests on a device."""
@@ -323,6 +335,7 @@ class Job():
         self.user_initiated = user_initiated
         self.status = "Pending"
 
+
     def __str__(self):
         return "{}-{}:{}/{}".format(
                 self.pr_id(),
@@ -330,14 +343,18 @@ class Job():
                 self.pr_full_name(),
                 self.pr_number())
 
+
     def pr_number(self):
         return github.pr_number(self.payload)
+
 
     def pr_id(self):
         return github.pr_id(self.payload)
 
+
     def pr_full_name(self):
         return github.pr_full_name(self.payload)
+
 
     def pr_sha1(self):
         return github.pr_sha1(self.payload)
@@ -351,12 +368,15 @@ regularly for the stopped() condition."""
         self._stop_event = threading.Event()
         self.job = job
 
+
     def stop(self):
         log.debug("Stopping PR {}".format(self.job.pr_number()))
         self._stop_event.set()
 
+
     def stopped(self):
         return self._stop_event.is_set()
+
 
     def start_job(self):
         global logstr
@@ -421,9 +441,9 @@ regularly for the stopped() condition."""
         log.debug("Job/{} : {} --> {}".format(current_status, self.job, running_time))
         db_update_job(pr_id, pr_sha1, current_status, running_time)
 
-################################################################################
+###############################################################################
 # Worker
-################################################################################
+###############################################################################
 worker_thread = None
 
 class WorkerThread(threading.Thread):
@@ -437,6 +457,7 @@ class WorkerThread(threading.Thread):
         self.job_dict = {}
         self.jt = None
         self.lock = threading.Lock()
+
 
     def user_add(self, pr_id, pr_sha1):
         if pr_id is None or pr_sha1 is None:
@@ -454,6 +475,7 @@ class WorkerThread(threading.Thread):
             self.q.append(pr_id_sha1)
             self.job_dict[pr_id_sha1] = Job(payload, True)
             db_update_job(pr_id, pr_sha1, "Pending", "N/A")
+
 
     def add(self, payload):
         """Responsible of adding new jobs the the job queue."""
@@ -493,6 +515,7 @@ class WorkerThread(threading.Thread):
             db_add_build_record(new_job.payload)
             #TODO: This shouldn't be needed, better to do the update in the db_add_build_record
             db_update_job(pr_id, pr_sha1, "Pending", "N/A")
+
 
     def cancel(self, pr_id, pr_sha1):
         force_update = True
@@ -535,6 +558,7 @@ class WorkerThread(threading.Thread):
                 self.jt = None
         return
 
+
 def initialize_worker_thread():
     """Initialize the main thread responsible for adding and running jobs."""
     global worker_thread
@@ -547,9 +571,9 @@ def initialize_worker_thread():
     worker_thread.start()
     log.info("Worker thread has been started")
 
-################################################################################
+###############################################################################
 # Logger
-################################################################################
+###############################################################################
 def initialize_logger():
     LOG_FMT = "[%(levelname)s] %(filename)-16s%(funcName)s():%(lineno)d # %(message)s"
     log.basicConfig(#filename=cfg.core_log,
@@ -558,10 +582,11 @@ def initialize_logger():
         filemode = 'w')
 
 
-################################################################################
+###############################################################################
 # Main
-################################################################################
+###############################################################################
 initialized = False
+
 
 def initialize():
     global initialized
@@ -573,9 +598,11 @@ def initialize():
         log.info("Initialize done!")
         initialized = True
 
+
 def user_add(pr_id, pr_sha1):
     initialize()
     worker_thread.user_add(pr_id, pr_sha1)
+
 
 def add(payload):
     initialize()
@@ -587,6 +614,7 @@ def add(payload):
     worker_thread.add(payload)
     return True
 
+
 def cancel(pr_id, pr_sha1):
     initialize()
     if pr_id is None or pr_sha1 is None:
@@ -596,9 +624,9 @@ def cancel(pr_id, pr_sha1):
     else:
         worker_thread.cancel(pr_id, pr_sha1)
 
-################################################################################
+###############################################################################
 # Debug
-################################################################################
+###############################################################################
 def load_payload_from_file(filename=None):
     fname = 'last_blob.json'
     payload = None
@@ -612,6 +640,7 @@ def load_payload_from_file(filename=None):
     # Convert it back to the same format as we get from websrv.py (from human
     # readable to Python data structure).
     return json.loads(payload)
+
 
 def local_run():
     initialize()
