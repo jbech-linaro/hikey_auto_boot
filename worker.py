@@ -73,7 +73,7 @@ def spawn_pexpect_child():
     rcfile = '--rcfile {}/.bashrc'.format(os.getcwd())
     child = pexpect.spawnu('/bin/bash', ['--rcfile', rcfile],
                            encoding='utf-8')
-    child.logfile_read = sys.stdout
+    # child.logfile_read = sys.stdout
     child.sendline('export PS1="HAB $ "')
     child.expect("HAB")
     return child
@@ -416,7 +416,6 @@ regularly for the stopped() condition."""
                     continue
 
                 for i in yml_iter:
-                    print(i)
                     c, e, t = get_yaml_cmd(i)
 
                     if not do_pexpect(child, c, e, t):
@@ -603,8 +602,7 @@ def initialize_worker_thread():
 
 
 def initialize_logger():
-    LOG_FMT = ("[%(levelname)s] %(filename)-16s%(funcName)s():%(lineno)d "
-               "# %(message)s")
+    LOG_FMT = ("[%(levelname)s] %(funcName)s():%(lineno)d   %(message)s")
     log.basicConfig(  # filename=cfg.core_log,
         level=log.DEBUG,
         format=LOG_FMT,
