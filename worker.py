@@ -117,14 +117,16 @@ def spawn_pexpect_child(job):
     # Make environment variables available in YAML job definitions.
     export_variables(child, job)
 
-    # Go to last known 'cd' directory
-    if last_cd is not None:
-        child.sendline(last_cd)
-
     # Export previous exports to the new shell
     if export_history:
         for e in export_history:
             child.sendline(e)
+
+    # Go to last known 'cd' directory.
+    # NOTE!!! This must be here after doing the exports, otherwise things like
+    # $ cd $SOME_VARIABLE will probably fail.
+    if last_cd is not None:
+        child.sendline(last_cd)
 
     child.sendline('export PS1="HAB $ "')
     child.expect("HAB")
@@ -162,15 +164,19 @@ d_logstr = {
         LOG_PRE_CLONE: "pre_clone",
         LOG_CLONE: "clone",
         LOG_POST_CLONE: "post_clone",
+
         LOG_PRE_BUILD: "pre_build",
         LOG_BUILD: "build",
         LOG_POST_BUILD: "post_build",
+
         LOG_PRE_FLASH: "pre_flash",
         LOG_FLASH: "flash",
         LOG_POST_FLASH: "post_flash",
+
         LOG_PRE_BOOT: "pre_boot",
         LOG_BOOT: "boot",
         LOG_POST_BOOT: "post_boot",
+
         LOG_PRE_TEST: "pre_test",
         LOG_TEST: "test",
         LOG_POST_TEST: "post_test"
@@ -510,7 +516,6 @@ regularly for the stopped() condition."""
     def run(self):
         """This is the main function for running a complete clone, build, flash
         and test job."""
-        global last_cd
         global export_history
         current_status = d_status[STATUS_RUNNING]
 
@@ -524,7 +529,6 @@ regularly for the stopped() condition."""
 
         current_status = d_status[self.start_job()]
 
-        last_cd = None
         export_history.clear()
 
         running_time = get_running_time(time_start)

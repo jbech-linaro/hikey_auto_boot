@@ -43,6 +43,7 @@ pre_build:
 
 build:
         - cmd: pwd
+          exp: 'build'
         - cmd: make
           exp: 'Built target tee-supplicant'
           timeout: 15
