@@ -85,13 +85,12 @@ def spawn_pexpect_child():
     child = pexpect.spawnu('/bin/bash', ['--rcfile', rcfile],
                            encoding='utf-8')
     # child.logfile_read = sys.stdout
-    child.sendline('export PS1="HAB $ "')
-    child.expect("HAB")
-
     # Go to last known 'cd' directory
     if last_cd is not None:
         child.sendline(last_cd)
-        child.expect("HAB")
+
+    child.sendline('export PS1="HAB $ "')
+    child.expect("HAB")
 
     return child
 
