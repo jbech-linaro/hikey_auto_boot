@@ -170,16 +170,16 @@ def read_log(log_file_dir, filename):
     # TODO: Check for "../" in log_file_dir so we are not vulnerable to
     # injection attacks.
     log_file = "{d}/{f}".format(d=log_file_dir, f=filename)
-    log = ""
+    log_line = ""
     try:
         ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
         with open(log_file, 'r') as f:
             # Let's remove ANSI escape characters
-            log = ansi_escape.sub('', f.read())
+            log_line = ansi_escape.sub('', f.read())
     except IOError:
         pass
 
-    return log
+    return log_line
 
 def clear_logfiles(pr_full_name, pr_number, pr_id, pr_sha1):
     if (pr_full_name is None or pr_number is None or pr_id is None or
