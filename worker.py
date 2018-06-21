@@ -14,6 +14,8 @@ import threading
 import time
 import yaml
 
+from pathlib import Path
+
 # Local modules
 import github
 import settings
@@ -195,9 +197,9 @@ def clear_logfiles(pr_full_name, pr_number, pr_id, pr_sha1):
         if os.path.isfile(full_filename):
             os.remove(full_filename)
 
-def store_logfile(pr_full_name, pr_number, pr_id, pr_sha1, filename):
+def store_logfile(pr_full_name, pr_number, pr_id, pr_sha1, current_file):
     if (pr_full_name is None or pr_number is None or pr_id is None or
-            pr_sha1 is None or filename is None):
+            pr_sha1 is None or current_file is None):
         log.error("Cannot store log file (missing parameters)")
         return
 
@@ -209,7 +211,8 @@ def store_logfile(pr_full_name, pr_number, pr_id, pr_sha1, filename):
     except:
         os.makedirs(log_file_dir)
 
-    source = "{d}/{f}".format(d=settings.log_dir(), f=filename)
+    source = current_file
+    filename = Path(current_file).name
     dest = "{d}/{f}".format(d=log_file_dir, f=filename)
 
     try:
@@ -424,15 +427,14 @@ regularly for the stopped() condition."""
             # Clear the log we are about to work with
             yml_iter = yml_config[logtype]
             child = spawn_pexpect_child()
-            # Do not add path to logs here, store_logfile deals with that
-            filename = "{}.log".format(logtype)
-            with open(filename, 'w') as f:
+            current_log_file = "{}/{}.log".format(settings.log_dir(), logtype)
+            with open(current_log_file, 'w') as f:
                 child.logfile_read = f
 
                 if yml_iter is None:
                     store_logfile(self.job.pr_full_name(),
                                   self.job.pr_number(), self.job.pr_id(),
-                                  self.job.pr_sha1(), filename)
+                                  self.job.pr_sha1(), current_log_file)
                     continue
 
                 for i in yml_iter:
@@ -444,7 +446,7 @@ regularly for the stopped() condition."""
                         store_logfile(self.job.pr_full_name(),
                                       self.job.pr_number(),
                                       self.job.pr_id(), self.job.pr_sha1(),
-                                      filename)
+                                      current_log_file)
                         return STATUS_FAIL
 
                     if self.stopped():
@@ -452,12 +454,12 @@ regularly for the stopped() condition."""
                         store_logfile(self.job.pr_full_name(),
                                       self.job.pr_number(),
                                       self.job.pr_id(), self.job.pr_sha1(),
-                                      filename)
+                                      current_log_file)
                         return STATUS_CANCEL
 
 
             store_logfile(self.job.pr_full_name(), self.job.pr_number(),
-                          self.job.pr_id(), self.job.pr_sha1(), filename)
+                          self.job.pr_id(), self.job.pr_sha1(), current_log_file)
         return STATUS_SUCCESS
 
     def run(self):
