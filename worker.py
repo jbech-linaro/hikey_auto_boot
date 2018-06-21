@@ -226,6 +226,7 @@ def read_log(log_file_dir, filename):
 
     return log_line
 
+
 def clear_logfiles(pr_full_name, pr_number, pr_id, pr_sha1):
     if (pr_full_name is None or pr_number is None or pr_id is None or
             pr_sha1 is None):
@@ -241,6 +242,7 @@ def clear_logfiles(pr_full_name, pr_number, pr_id, pr_sha1):
         if os.path.isfile(full_filename):
             os.remove(full_filename)
 
+
 def store_logfile(pr_full_name, pr_number, pr_id, pr_sha1, current_file):
     if (pr_full_name is None or pr_number is None or pr_id is None or
             pr_sha1 is None or current_file is None):
@@ -248,11 +250,12 @@ def store_logfile(pr_full_name, pr_number, pr_id, pr_sha1, current_file):
         return
 
     log_file_dir = "{p}/{fn}/{n}/{i}/{s}".format(
-            p=settings.log_dir(), fn=pr_full_name, n=pr_number, i=pr_id, s=pr_sha1)
+            p=settings.log_dir(), fn=pr_full_name, n=pr_number, i=pr_id,
+            s=pr_sha1)
 
     try:
         os.stat(log_file_dir)
-    except:
+    except FileNotFoundError:
         os.makedirs(log_file_dir)
 
     source = current_file
@@ -261,7 +264,7 @@ def store_logfile(pr_full_name, pr_number, pr_id, pr_sha1, current_file):
 
     try:
         os.rename(source, dest)
-    except:
+    except OSError:
         log.error("Couldn't move log file (from: {}, to: {}".format(
             source, dest))
 
@@ -380,6 +383,7 @@ def db_get_pr(pr_number):
     con.commit()
     con.close()
     return r
+
 
 ###############################################################################
 # Utils
@@ -510,7 +514,8 @@ regularly for the stopped() condition."""
 
                 terminate_child(child)
             store_logfile(self.job.pr_full_name(), self.job.pr_number(),
-                          self.job.pr_id(), self.job.pr_sha1(), current_log_file)
+                          self.job.pr_id(), self.job.pr_sha1(),
+                          current_log_file)
         return STATUS_SUCCESS
 
     def run(self):
@@ -539,6 +544,8 @@ regularly for the stopped() condition."""
 ###############################################################################
 # Worker
 ###############################################################################
+
+
 worker_thread = None
 
 
@@ -753,6 +760,7 @@ def load_payload_from_file(filename=None):
 def local_run():
     initialize()
     add(load_payload_from_file())
+
 
 if __name__ == "__main__":
     local_run()

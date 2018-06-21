@@ -8,9 +8,6 @@ import os
 import sys
 
 # Local imports
-from dbg import pr
-import cfg
-import logger
 import worker
 
 app = Flask(__name__)
