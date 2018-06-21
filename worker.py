@@ -14,7 +14,9 @@ import threading
 import time
 import yaml
 
+# Local modules
 import github
+import settings
 
 ###############################################################################
 # Sigint
@@ -131,8 +133,9 @@ def get_logs(pr_full_name, pr_number, pr_id, pr_sha1):
         log.error("Cannot store log file (missing parameters)")
         return
 
-    log_file_dir = "{p}/logs/{fn}/{n}/{i}/{s}".format(
-            p=os.getcwd(), fn=pr_full_name, n=pr_number, i=pr_id, s=pr_sha1)
+    log_file_dir = "{p}/{fn}/{n}/{i}/{s}".format(
+            p=settings.log_dir(), fn=pr_full_name, n=pr_number, i=pr_id,
+            s=pr_sha1)
 
     log.debug("Getting logs from {}".format(log_file_dir))
 
@@ -169,8 +172,9 @@ def clear_logfiles(pr_full_name, pr_number, pr_id, pr_sha1):
         log.error("Cannot clear log files (missing parameters)")
         return
 
-    log_file_dir = "{p}/logs/{fn}/{n}/{i}/{s}".format(
-            p=os.getcwd(), fn=pr_full_name, n=pr_number, i=pr_id, s=pr_sha1)
+    log_file_dir = "{p}/{fn}/{n}/{i}/{s}".format(
+            p=settings.log_dir(), fn=pr_full_name, n=pr_number, i=pr_id,
+            s=pr_sha1)
 
     for key, logtype in d_logstr.items():
         full_filename = "{}/{}.log".format(log_file_dir, logtype)
@@ -183,15 +187,15 @@ def store_logfile(pr_full_name, pr_number, pr_id, pr_sha1, filename):
         log.error("Cannot store log file (missing parameters)")
         return
 
-    log_file_dir = "{p}/logs/{fn}/{n}/{i}/{s}".format(
-            p=os.getcwd(), fn=pr_full_name, n=pr_number, i=pr_id, s=pr_sha1)
+    log_file_dir = "{p}/{fn}/{n}/{i}/{s}".format(
+            p=settings.log_dir(), fn=pr_full_name, n=pr_number, i=pr_id, s=pr_sha1)
 
     try:
         os.stat(log_file_dir)
     except:
         os.makedirs(log_file_dir)
 
-    source = "{d}/{f}".format(d=os.getcwd(), f=filename)
+    source = "{d}/{f}".format(d=settings.log_dir(), f=filename)
     dest = "{d}/{f}".format(d=log_file_dir, f=filename)
 
     try:
@@ -205,7 +209,7 @@ def store_logfile(pr_full_name, pr_number, pr_id, pr_sha1, filename):
 # -----------------------------------------------------------------------------
 
 
-DB_RUN_FILE = os.path.join(os.path.dirname(__file__), 'hab.db')
+DB_RUN_FILE = os.path.join(os.path.dirname(__file__), settings.db_file())
 
 
 def db_connect(db_file=DB_RUN_FILE):
@@ -406,6 +410,7 @@ regularly for the stopped() condition."""
             # Clear the log we are about to work with
             yml_iter = yml_config[logtype]
             child = spawn_pexpect_child()
+            # Do not add path to logs here, store_logfile deals with that
             filename = "{}.log".format(logtype)
             with open(filename, 'w') as f:
                 child.logfile_read = f
@@ -608,7 +613,7 @@ def initialize_worker_thread():
 def initialize_logger():
     LOG_FMT = ("[%(levelname)s] %(funcName)s():%(lineno)d   %(message)s")
     log.basicConfig(
-        filename="core.log",
+        filename=settings.log_file(),
         level=log.DEBUG,
         format=LOG_FMT,
         filemode='w')
