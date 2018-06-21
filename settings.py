@@ -3,6 +3,7 @@
 import logging as log
 import yaml
 
+
 def get_settings_yml_file():
     yml_file = None
     config_file = "configs/settings.yaml"
@@ -10,7 +11,7 @@ def get_settings_yml_file():
     try:
         with open(config_file, 'r') as yml:
             yml_file = yaml.load(yml)
-    except:
+    except KeyError:
         log.error("Couldn't find {}", config_file)
         exit()
 
@@ -21,7 +22,7 @@ def config_path():
     yml_file = get_settings_yml_file()
     try:
         return yml_file['config']['path']
-    except:
+    except KeyError:
         return "Missing key!"
 
 
@@ -29,7 +30,7 @@ def repo_bin():
     yml_file = get_settings_yml_file()
     try:
         return yml_file['repo']['bin']
-    except:
+    except KeyError:
         return "Missing key!"
 
 
@@ -37,7 +38,7 @@ def repo_reference():
     yml_file = get_settings_yml_file()
     try:
         return yml_file['repo']['reference']
-    except:
+    except KeyError:
         return "Missing key!"
 
 
@@ -45,7 +46,7 @@ def aarch32_toolchain_path():
     yml_file = get_settings_yml_file()
     try:
         return yml_file['toolchain']['aarch32_path']
-    except:
+    except KeyError:
         return "Missing key!"
 
 
@@ -53,7 +54,7 @@ def aarch64_toolchain_path():
     yml_file = get_settings_yml_file()
     try:
         return yml_file['toolchain']['aarch64_path']
-    except:
+    except KeyError:
         return "Missing key!"
 
 
@@ -61,7 +62,7 @@ def aarch32_prefix():
     yml_file = get_settings_yml_file()
     try:
         return yml_file['toolchain']['aarch32_prefix']
-    except:
+    except KeyError:
         return "Missing key!"
 
 
@@ -69,7 +70,7 @@ def aarch64_prefix():
     yml_file = get_settings_yml_file()
     try:
         return yml_file['toolchain']['aarch64_prefix']
-    except:
+    except KeyError:
         return "Missing key!"
 
 
@@ -77,7 +78,7 @@ def workspace_path():
     yml_file = get_settings_yml_file()
     try:
         return yml_file['workspace']['path']
-    except:
+    except KeyError:
         return "Missing key!"
 
 
@@ -85,7 +86,7 @@ def log_dir():
     yml_file = get_settings_yml_file()
     try:
         return yml_file['log']['dir']
-    except:
+    except KeyError:
         return "Missing key!"
 
 
@@ -93,7 +94,7 @@ def log_file():
     yml_file = get_settings_yml_file()
     try:
         return yml_file['log']['file']
-    except:
+    except KeyError:
         return "Missing key!"
 
 
@@ -101,17 +102,21 @@ def db_file():
     yml_file = get_settings_yml_file()
     try:
         return yml_file['db']['file']
-    except:
+    except KeyError:
         return "Missing key!"
+
+###############################################################################
+# Everything below this line is just for debugging this
+###############################################################################
 
 
 def foo():
     yml_file = get_settings_yml_file()
     try:
         return yml_file['foo']['aarch64_path']
-    except:
+    except KeyError:
         return "Missing key!"
-        
+
 
 def initialize():
     log.info("Configure settings")
@@ -140,3 +145,4 @@ def initialize_logger():
 if __name__ == "__main__":
     initialize_logger()
     initialize()
+    foo()
