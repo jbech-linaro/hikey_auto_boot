@@ -85,14 +85,38 @@ def do_pexpect(child, cmd=None, exp=None, timeout=5, error_pos=1):
     return True
 
 
-def spawn_pexpect_child():
+def export_variables(child, job):
+    """This function exports any information that could be used by the one
+    writing the yaml scripts for a particular job. Typically one want to export
+    the information coming from GitHub here."""
+    exported_variables = [
+            "export HAB_PR_SHA1={}".format(job.pr_sha1()),
+            "export HAB_PR_NUMBER={}".format(job.pr_number()),
+            "export HAB_PR_NAME={}".format(job.pr_name()),
+            "export HAB_PR_FULL_NAME={}".format(job.pr_full_name()),
+            "export HAB_PR_CLONE_URL={}".format(job.pr_clone_url())
+    ]
+
+    for e in exported_variables:
+        child.sendline(e)
+        child.expect('')
+
+
+def spawn_pexpect_child(job):
     global last_cd
     global export_history
+
+    if job is None:
+        log.error("Trying to spawn child with no Job")
+        return
 
     rcfile = '--rcfile {}/.bashrc'.format(os.getcwd())
     child = pexpect.spawnu('/bin/bash', ['--rcfile', rcfile],
                            encoding='utf-8')
-    # child.logfile_read = sys.stdout
+
+    # Make environment variables available in YAML job definitions.
+    export_variables(child, job)
+
     # Go to last known 'cd' directory
     if last_cd is not None:
         child.sendline(last_cd)
@@ -109,6 +133,8 @@ def spawn_pexpect_child():
 
 
 def terminate_child(child):
+    child.sendline('exit')
+    r = child.expect([pexpect.EOF, pexpect.TIMEOUT], 5)
     child.close()
 
 ###############################################################################
@@ -398,11 +424,17 @@ class Job():
     def pr_id(self):
         return github.pr_id(self.payload)
 
+    def pr_name(self):
+        return github.pr_name(self.payload)
+
     def pr_full_name(self):
         return github.pr_full_name(self.payload)
 
     def pr_sha1(self):
         return github.pr_sha1(self.payload)
+
+    def pr_clone_url(self):
+        return github.pr_clone_url(self.payload)
 
 
 class JobThread(threading.Thread):
@@ -438,7 +470,7 @@ regularly for the stopped() condition."""
         for k, logtype in d_logstr.items():
             # Clear the log we are about to work with
             yml_iter = yml_config[logtype]
-            child = spawn_pexpect_child()
+            child = spawn_pexpect_child(self.job)
             current_log_file = "{}/{}.log".format(settings.log_dir(), logtype)
             with open(current_log_file, 'w') as f:
                 child.logfile_read = f
@@ -462,6 +494,7 @@ regularly for the stopped() condition."""
                         return STATUS_FAIL
 
                     if self.stopped():
+                        terminate_child(child)
                         log.debug("job type: {} cancelled!".format(logtype))
                         store_logfile(self.job.pr_full_name(),
                                       self.job.pr_number(),
@@ -469,7 +502,7 @@ regularly for the stopped() condition."""
                                       current_log_file)
                         return STATUS_CANCEL
 
-
+                terminate_child(child)
             store_logfile(self.job.pr_full_name(), self.job.pr_number(),
                           self.job.pr_id(), self.job.pr_sha1(), current_log_file)
         return STATUS_SUCCESS
