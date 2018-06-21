@@ -1,4 +1,0 @@
-CLONE = 0
-BUILD = 1
-FLASH = 2
-RUN = 3
