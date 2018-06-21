@@ -52,12 +52,18 @@ post_build:
 pre_flash:
 
 flash:
+        - cmd: 'echo "flash"'
+          exp: flash
+        - cmd: cd /tmp/
+          exp: HAB
 
 post_flash:
 
 pre_boot:
 
 boot:
+        - cmd: pwd
+          exp: /tmp/
 
 post_boot:
 

@@ -44,28 +44,16 @@ class FileAdapter(object):
 
 def main():
     print("Start")
-    a = A(123)
-    print(a)
-    a.change()
-
-    my_cmd = "sleep 1"
-    my_exp = "logd.db"
-    c = pexpect.spawnu(my_cmd)
-    c.logfile = FileAdapter()
-    print("Expect ...")
-    dir(c.expect)
-    r = c.expect([my_exp, pexpect.EOF, pexpect.TIMEOUT], timeout=3)
-    print(r)
-    #log = c.before
-    #print(c.after)
-
-    #print("I sent: {}".format(my_cmd))
-    #print("I got:\n{}".format(log))
-    a, b, c = ret_many()
-    print("{}, {}, {}".format(a, b, c))
     d = {1: "a", 2: "b", 3: "c"}
     for k, v in d.items():
         print(v)
+
+    cmd = "cd /tmp/"
+    if cmd.startswith("cd "):
+        print("y")
+    else:
+        print("n")
+
 
 
 if __name__ == "__main__":
