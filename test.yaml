@@ -3,6 +3,7 @@ pre_clone:
         - cmd: mkdir -p /tmp/test
         - cmd: echo $?
           exp: '0'
+        - cmd: export MYLONG_EXPORT_TEST=123
 
 clone:
         - cmd: cd /tmp/test
@@ -31,7 +32,6 @@ pre_build:
 
 
 build:
-        - cmd: export PATH=:/home/optee/devel/reference/toolchains/aarch32/bin:$PATH
         - cmd: make
           exp: 'Built target tee-supplicant'
           timeout: 15
@@ -70,3 +70,5 @@ pre_test:
 test:
 
 post_test:
+        - cmd: echo $MYLONG_EXPORT_TEST
+          exp: '123'

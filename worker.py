@@ -37,6 +37,7 @@ signal.signal(signal.SIGINT, signal_handler)
 
 
 last_cd = None
+export_history = []
 
 
 def get_yaml_cmd(yml_iter):
@@ -54,6 +55,11 @@ def do_pexpect(child, cmd=None, exp=None, timeout=5, error_pos=1):
         if cmd.startswith("cd "):
             global last_cd
             last_cd = cmd
+
+        if cmd.startswith("export "):
+            global export_history
+            export_history.append(cmd)
+
         child.sendline(cmd)
 
     if exp is not None:
@@ -81,6 +87,8 @@ def do_pexpect(child, cmd=None, exp=None, timeout=5, error_pos=1):
 
 def spawn_pexpect_child():
     global last_cd
+    global export_history
+
     rcfile = '--rcfile {}/.bashrc'.format(os.getcwd())
     child = pexpect.spawnu('/bin/bash', ['--rcfile', rcfile],
                            encoding='utf-8')
@@ -88,6 +96,11 @@ def spawn_pexpect_child():
     # Go to last known 'cd' directory
     if last_cd is not None:
         child.sendline(last_cd)
+
+    # Export previous exports to the new shell
+    if export_history:
+        for e in export_history:
+            child.sendline(e)
 
     child.sendline('export PS1="HAB $ "')
     child.expect("HAB")
@@ -465,6 +478,7 @@ regularly for the stopped() condition."""
         """This is the main function for running a complete clone, build, flash
         and test job."""
         global last_cd
+        global export_history
         current_status = d_status[STATUS_RUNNING]
 
         log.debug("Job/{} : {}".format(current_status, self.job))
@@ -478,6 +492,7 @@ regularly for the stopped() condition."""
         current_status = d_status[self.start_job()]
 
         last_cd = None
+        export_history.clear()
 
         running_time = get_running_time(time_start)
         log.debug("Job/{} : {} --> {}".format(current_status, self.job,
