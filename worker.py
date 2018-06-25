@@ -696,8 +696,7 @@ def initialize_logger():
     log.basicConfig(
         filename=settings.log_file(),
         level=log.DEBUG,
-        format=LOG_FMT,
-        filemode='w')
+        format=LOG_FMT)
 
 
 ###############################################################################
