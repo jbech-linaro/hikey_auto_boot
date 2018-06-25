@@ -1,0 +1,23 @@
+# Only use absolute and relative paths, since $ENV are not supported right now
+config:
+        path: configs
+
+repo:
+        bin: home/optee/bin/repo
+        reference: /home/optee/devel/reference
+
+toolchain:
+        aarch32_path: /home/optee/devel/reference/toolchains/aarch32/bin
+        aarch64_path: /home/optee/devel/reference/toolchains/aarch64/bin
+        aarch32_prefix: arm-linux-gnueabihf-
+        aarch64_prefix: aarch64-linux-gnu-
+
+workspace:
+        path: /tmp/workspace
+
+log:
+        dir: logs
+        file: logs/core.log
+
+db:
+        file: database/hab.db

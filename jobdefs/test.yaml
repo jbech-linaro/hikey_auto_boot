@@ -1,0 +1,77 @@
+pre_clone:
+        - cmd: export MYWORKSPACE=/tmp/test
+        - cmd: echo $?
+          exp: '0'
+        - cmd: rm -rf /tmp/test
+        - cmd: mkdir -p $MYWORKSPACE
+        - cmd: echo $?
+          exp: '0'
+
+clone:
+        - cmd: cd $MYWORKSPACE
+        - cmd: /home/optee/bin/repo init -u https://github.com/jbech-linaro/manifest.git -b test
+          exp: 'repo has been initialized in'
+          timeout: 20
+        - cmd: repo sync -j3
+          exp: 'Fetching projects'
+          timeout: 30
+        - cmd: echo $?
+          exp: '0'
+
+post_clone:
+        - cmd: cd $MYWORKSPACE/$PR_NAME
+        - cmd: echo $?
+          exp: '0'
+        - cmd: git remote add myremote $PR_CLONE_URL
+        - cmd: git remote update
+        - cmd: git checkout $PR_SHA1
+        - cmd: echo $?
+          exp: '0'
+
+pre_build:
+        - cmd: mkdir -p $MYWORKSPACE/$PR_NAME/build
+        - cmd: echo $?
+          exp: '0'
+        - cmd: cd $MYWORKSPACE/$PR_NAME/build
+        - cmd: export PATH=:/home/optee/devel/reference/toolchains/aarch32/bin:$PATH
+        - cmd: cmake -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc -DCMAKE_INSTALL_PREFIX=/tmp/optee_client/install ..
+          exp: 'Build files have been written to'
+          timeout: 5
+        - cmd: echo $?
+          exp: '0'
+
+build:
+        - cmd: pwd
+          exp: 'build'
+        - cmd: make
+          exp: 'Built target tee-supplicant'
+          timeout: 15
+        - cmd: echo $?
+          exp: '0'
+
+post_build:
+        - cmd: make install
+        - cmd: echo $?
+          exp: '0'
+
+pre_flash:
+
+flash:
+
+post_flash:
+
+pre_boot:
+
+boot:
+        - cmd: pwd
+          exp: /tmp
+
+post_boot:
+
+pre_test:
+
+test:
+
+post_test:
+        - cmd: echo $MYWORKSPACE
+          exp: '/tmp/test'
