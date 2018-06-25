@@ -62,6 +62,11 @@ div.header {
 	font-size: 60px;
 }
 
+div.link {
+	font-size: 13px;
+	text-align: center
+}
+
 .info {
 	font-weight: bold; /* Make sure they're bold */
 }
