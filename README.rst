@@ -10,6 +10,25 @@ What is IBART?
 ==============
 It's an tool that can initiate a full clone, build, flash, boot and test cycle initiated by a webhook from GitHub. It works with both pure software as well as hardware connected directly to the server. So, a typical use case could be that you have an embedded device that you want to re-flash new software, boot it up and then run some test cases and when done it should report back the status to the GitHub pull request.
 
+How to use IBART
+================
+- First one needs to setup webhooks_ at GitHub. Important things to configure here is the ``Payload URL``, which should point to the server running IBART. The listening port is by default ``5000``. For ``Content type`` one should select ``application/json``. The secret on the GitHub webhooks page is a string that you need to export in your shell before starting IBART (TODO: add export command). At the section ``Which events would you like to trigger this webhook?`` it is sufficient to select ``Pull requests``.
+- Export your GitHub secret before starting IBART:
+.. code-block:: bash
+
+    export GITHUB_SECRET="my-github-secret"
+
+- Export your GitHub token  before starting IBART:
+.. code-block:: bash
+
+    export GITHUB_TOKEN="my-long-hex-string"
+
+- Set up global settings in ``configs/settings.yaml``
+- Write a job definition and store it in ``jobdefs/my-job.yml``
+- Run ``./websrv.py``
+
+If everything done correctly, IBART should now be listening for build requests as well as serve HTML queries at http://my-server:5000_. 
+
 Configuration
 =============
 
@@ -47,10 +66,6 @@ templates
 ---------
 Default folder for jinja2 ``HTML`` templates.
 
-How to use IBART
-================
-- First one needs to setup webhooks at GitHub.
-
 Job definitions - Yaml-files
 ============================
 
@@ -76,3 +91,4 @@ Security considerations
 
 
 .. _static: http://flask.pocoo.org/docs/1.0/quickstart/#static-files
+.. _webhooks: https://developer.github.com/webhooks/creating
