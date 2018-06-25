@@ -1,51 +1,12 @@
 <html>
 <head>
-<style>
-	div {
-		background-color: lightgrey;
-		font-family: helvetica;
-		font-size:13;
-	}
-
-	pre, code {
-		background-color: lightgrey;
-		font-family: 'Consolas', 'Menlo', 'Deja Vu Sans Mono', 'Bitstream Vera Sans Mono', monospace;
-		white-space: pre-wrap;       /* Since CSS 2.1 */
-		white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
-		white-space: -pre-wrap;      /* Opera 4-6 */
-		white-space: -o-pre-wrap;    /* Opera 7 */
-		word-wrap: break-word;       /* Internet Explorer 5.5+ */
-		border-radius: 0 !important;
-		font-size: 0.7em;
-	}
-
-	table {
-	    color: #333; /* Lighten up font color */
-	    font-family: Helvetica, Arial, sans-serif; /* Nicer font */
-	    width: 800px;
-	    border-collapse:
-	    collapse; border-spacing: 0;
-	    margin: auto;
-	}
-
-	td, th { border: 1px solid #CCC;
-		 height: 30px; /* Make cells a bit taller */
-		 font-size:13;
-	}
-
-	th {
-	    background: #F3F3F3; /* Light grey background */
-	    font-weight: bold; /* Make sure they're bold */
-	}
-
-	td {
-	    background: #FAFAFA; /* Lighter grey background */
-	    text-align: center; /* Center our text */
-	}
-</style>
+	<script type = "text/javascript"
+		src = "{{ url_for('static', filename = 'main.js') }}" >
+	</script>
+	<link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
 </head>
 <title>HiKey Auto Boot</title>
-<body>
+<body class="content">
   <table>
 	  <tr>
 		  <th>Job ID / Log</th>
