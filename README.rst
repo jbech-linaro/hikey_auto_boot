@@ -154,7 +154,7 @@ Just as for the exported variables the last seen ``cd`` command is saved and the
 
 Security considerations
 =======================
-This is a very early version and there are things are not secure:
+This is a very early version and there are things that are not secure:
 
 - There has been no real attempt yet to protect against SQL injection.
 - Anyone can restart and stop a job by going to the main page on IBART.
