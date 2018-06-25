@@ -90,11 +90,11 @@ def export_variables(child, job):
     writing the yaml scripts for a particular job. Typically one want to export
     the information coming from GitHub here."""
     exported_variables = [
-            "export HAB_PR_SHA1={}".format(job.pr_sha1()),
-            "export HAB_PR_NUMBER={}".format(job.pr_number()),
-            "export HAB_PR_NAME={}".format(job.pr_name()),
-            "export HAB_PR_FULL_NAME={}".format(job.pr_full_name()),
-            "export HAB_PR_CLONE_URL={}".format(job.pr_clone_url())
+            "export PR_SHA1={}".format(job.pr_sha1()),
+            "export PR_NUMBER={}".format(job.pr_number()),
+            "export PR_NAME={}".format(job.pr_name()),
+            "export PR_FULL_NAME={}".format(job.pr_full_name()),
+            "export PR_CLONE_URL={}".format(job.pr_clone_url())
     ]
 
     for e in exported_variables:
@@ -128,8 +128,8 @@ def spawn_pexpect_child(job):
     if last_cd is not None:
         child.sendline(last_cd)
 
-    child.sendline('export PS1="HAB $ "')
-    child.expect("HAB")
+    child.sendline('export PS1="IBART $ "')
+    child.expect("IBART")
 
     return child
 

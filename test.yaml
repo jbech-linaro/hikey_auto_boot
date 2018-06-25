@@ -1,4 +1,3 @@
-# List of all command needed to flash a HiKey 620 4GB device
 pre_clone:
         - cmd: export MYWORKSPACE=/tmp/test
         - cmd: echo $?
@@ -20,20 +19,20 @@ clone:
           exp: '0'
 
 post_clone:
-        - cmd: cd $MYWORKSPACE/$HAB_PR_NAME
+        - cmd: cd $MYWORKSPACE/$PR_NAME
         - cmd: echo $?
           exp: '0'
-        - cmd: git remote add myremote $HAB_PR_CLONE_URL
+        - cmd: git remote add myremote $PR_CLONE_URL
         - cmd: git remote update
-        - cmd: git checkout $HAB_PR_SHA1
+        - cmd: git checkout $PR_SHA1
         - cmd: echo $?
           exp: '0'
 
 pre_build:
-        - cmd: mkdir -p $MYWORKSPACE/$HAB_PR_NAME/build
+        - cmd: mkdir -p $MYWORKSPACE/$PR_NAME/build
         - cmd: echo $?
           exp: '0'
-        - cmd: cd $MYWORKSPACE/$HAB_PR_NAME/build
+        - cmd: cd $MYWORKSPACE/$PR_NAME/build
         - cmd: export PATH=:/home/optee/devel/reference/toolchains/aarch32/bin:$PATH
         - cmd: cmake -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc -DCMAKE_INSTALL_PREFIX=/tmp/optee_client/install ..
           exp: 'Build files have been written to'
