@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import base64
+import glob
 import json
 import logging as log
 import os
@@ -370,7 +371,6 @@ def db_get_html_row(page):
            "ORDER BY id DESC LIMIT {}".format(page * 15))
     cur.execute(sql)
     r = cur.fetchall()
-    print(r)
     con.commit()
     con.close()
     return r
@@ -413,6 +413,10 @@ def get_running_time(time_start):
     m, s = divmod(time.time() - time_start, 60)
     h, m = divmod(m, 60)
     return "{}h:{:02d}m:{:02d}s".format(int(h), int(m), int(s))
+
+
+def get_job_definitions():
+    return [jd for jd in glob.glob("jobdefs/*.yaml")]
 
 ###############################################################################
 # Jobs
@@ -471,56 +475,60 @@ regularly for the stopped() condition."""
     def start_job(self):
         global d_logstr
 
-        log.info("Start clone, build ... sequence for {}".format(self.job))
-        with open("test.yaml", 'r') as yml:
-            yml_config = yaml.load(yml)
+        jobdefs = get_job_definitions()
+        print(jobdefs)
 
-        # To prevent old logs from showing up on the web-page, start by
-        # removing all of them.
-        clear_logfiles(self.job.pr_full_name(),
-                       self.job.pr_number(), self.job.pr_id(),
-                       self.job.pr_sha1())
+        for jd in jobdefs:
+            log.info("Start clone, build ... sequence for {}".format(self.job))
+            with open(jd, 'r') as yml:
+                yml_config = yaml.load(yml)
 
-        # Loop all defined values
-        for k, logtype in d_logstr.items():
-            # Clear the log we are about to work with
-            yml_iter = yml_config[logtype]
-            child = spawn_pexpect_child(self.job)
-            current_log_file = "{}/{}.log".format(settings.log_dir(), logtype)
-            with open(current_log_file, 'w') as f:
-                child.logfile_read = f
+            # To prevent old logs from showing up on the web-page, start by
+            # removing all of them.
+            clear_logfiles(self.job.pr_full_name(),
+                           self.job.pr_number(), self.job.pr_id(),
+                           self.job.pr_sha1())
 
-                if yml_iter is None:
-                    store_logfile(self.job.pr_full_name(),
-                                  self.job.pr_number(), self.job.pr_id(),
-                                  self.job.pr_sha1(), current_log_file)
-                    continue
+            # Loop all defined values
+            for k, logtype in d_logstr.items():
+                # Clear the log we are about to work with
+                yml_iter = yml_config[logtype]
+                child = spawn_pexpect_child(self.job)
+                current_log_file = "{}/{}.log".format(settings.log_dir(), logtype)
+                with open(current_log_file, 'w') as f:
+                    child.logfile_read = f
 
-                for i in yml_iter:
-                    c, e, t = get_yaml_cmd(i)
-
-                    if not do_pexpect(child, c, e, t):
-                        terminate_child(child)
-                        log.error("job type: {} failed!".format(logtype))
+                    if yml_iter is None:
                         store_logfile(self.job.pr_full_name(),
-                                      self.job.pr_number(),
-                                      self.job.pr_id(), self.job.pr_sha1(),
-                                      current_log_file)
-                        return STATUS_FAIL
+                                      self.job.pr_number(), self.job.pr_id(),
+                                      self.job.pr_sha1(), current_log_file)
+                        continue
 
-                    if self.stopped():
-                        terminate_child(child)
-                        log.debug("job type: {} cancelled!".format(logtype))
-                        store_logfile(self.job.pr_full_name(),
-                                      self.job.pr_number(),
-                                      self.job.pr_id(), self.job.pr_sha1(),
-                                      current_log_file)
-                        return STATUS_CANCEL
+                    for i in yml_iter:
+                        c, e, t = get_yaml_cmd(i)
 
-                terminate_child(child)
-            store_logfile(self.job.pr_full_name(), self.job.pr_number(),
-                          self.job.pr_id(), self.job.pr_sha1(),
-                          current_log_file)
+                        if not do_pexpect(child, c, e, t):
+                            terminate_child(child)
+                            log.error("job type: {} failed!".format(logtype))
+                            store_logfile(self.job.pr_full_name(),
+                                          self.job.pr_number(),
+                                          self.job.pr_id(), self.job.pr_sha1(),
+                                          current_log_file)
+                            return STATUS_FAIL
+
+                        if self.stopped():
+                            terminate_child(child)
+                            log.debug("job type: {} cancelled!".format(logtype))
+                            store_logfile(self.job.pr_full_name(),
+                                          self.job.pr_number(),
+                                          self.job.pr_id(), self.job.pr_sha1(),
+                                          current_log_file)
+                            return STATUS_CANCEL
+
+                    terminate_child(child)
+                store_logfile(self.job.pr_full_name(), self.job.pr_number(),
+                              self.job.pr_id(), self.job.pr_sha1(),
+                              current_log_file)
         return STATUS_SUCCESS
 
     def run(self):
