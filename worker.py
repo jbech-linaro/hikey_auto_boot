@@ -364,10 +364,13 @@ def db_get_payload_from_pr_id(pr_id, pr_sha1):
 def db_get_html_row(page):
     con = db_connect()
     cur = con.cursor()
-    # TODO: Return on the necessary things
-    sql = "SELECT * FROM job ORDER BY id DESC LIMIT {}".format(page * 15)
+    sql = ("SELECT id, pr_id, sha1, full_name, pr_number, date, run_time, "
+           "status "
+           "FROM job "
+           "ORDER BY id DESC LIMIT {}".format(page * 15))
     cur.execute(sql)
     r = cur.fetchall()
+    print(r)
     con.commit()
     con.close()
     return r
@@ -376,8 +379,10 @@ def db_get_html_row(page):
 def db_get_pr(pr_number):
     con = db_connect()
     cur = con.cursor()
-    sql = ("SELECT * FROM job WHERE pr_number = '{}' ORDER BY date DESC, "
-           "full_name".format(pr_number))
+    sql = ("SELECT id, pr_id, sha1, full_name, pr_number, date, run_time, status "
+           "FROM job "
+           "WHERE pr_number = '{}' "
+           "ORDER BY date DESC".format(pr_number))
     cur.execute(sql)
     r = cur.fetchall()
     con.commit()
