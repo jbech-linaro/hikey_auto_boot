@@ -58,8 +58,19 @@ td {
 	margin-right: 100px;
 }
 
+div.header {
+	font-size: 60px;
+}
+
 .info {
 	font-weight: bold; /* Make sure they're bold */
+}
+
+p.c {
+	font-weight: bold; /* Make sure they're bold */
+	font-size: 50px; /* Make sure they're bold */
+	text-align: center;
+	text-decoration:underline;
 }
 
 .logtable {
