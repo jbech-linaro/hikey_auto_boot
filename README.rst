@@ -124,7 +124,7 @@ Within each section one states commands, expected output and the timeout. Timeou
         - cmd: make -j8
           timeout: 600
         - cmd: echo $?
-          exp '0'
+          exp: '0'
           
 This simple test would create a working directory, clone Linux kernel, build it for Arm (timeout 600 seconds) and check whether it was a successful build or not. Note that one can use both this 
 
@@ -132,7 +132,7 @@ This simple test would create a working directory, clone Linux kernel, build it 
 
     build:
         - cmd: echo $?
-          exp '0'
+          exp: '0'
 
 as well as this syntax (pay attention to the added ``-`` at ``exp``. 
 
@@ -140,7 +140,7 @@ as well as this syntax (pay attention to the added ``-`` at ``exp``.
 
     build:
         - cmd: echo $?
-        - exp '0'
+        - exp: '0'
 
 From user point of view there is no difference. But under the hood, the later is done in two loops within the script and the first one is done in a single loop.
 
