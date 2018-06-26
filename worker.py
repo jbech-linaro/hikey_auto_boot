@@ -44,7 +44,7 @@ export_history = []
 def get_yaml_cmd(yml_iter):
     cmd = yml_iter.get('cmd', None)
     exp = yml_iter.get('exp', None)
-    check_ret = yml_iter.get('chkret', None)
+    check_ret = yml_iter.get('chkret', "y")
     to = yml_iter.get('timeout', 3)
     log.debug("cmd: {}, exp: {}, chkret: {}, timeout: {}".format(
         cmd, exp, check_ret, to))
@@ -267,11 +267,15 @@ def clear_logfiles(pr_full_name, pr_number, pr_id, pr_sha1):
             os.remove(full_filename)
 
 
-def store_logfile(pr_full_name, pr_number, pr_id, pr_sha1, current_file):
-    if (pr_full_name is None or pr_number is None or pr_id is None or
-            pr_sha1 is None or current_file is None):
+def store_logfile(payload, current_file):
+    if (payload is None or current_file is None):
         log.error("Cannot store log file (missing parameters)")
         return
+
+    pr_full_name = github.pr_full_name(payload)
+    pr_number = github.pr_number(payload)
+    pr_id = github.pr_id(payload)
+    pr_sha1 = github.pr_sha1(payload)
 
     log_file_dir = "{p}/{fn}/{n}/{i}/{s}".format(
             p=settings.log_dir(), fn=pr_full_name, n=pr_number, i=pr_id,
@@ -525,9 +529,7 @@ regularly for the stopped() condition."""
                     child.logfile_read = f
 
                     if yml_iter is None:
-                        store_logfile(self.job.pr_full_name(),
-                                      self.job.pr_number(), self.job.pr_id(),
-                                      self.job.pr_sha1(), current_log_file)
+                        store_logfile(self.job.payload, current_log_file)
                         continue
 
                     for i in yml_iter:
@@ -537,25 +539,17 @@ regularly for the stopped() condition."""
                         if not do_pexpect(child, c, e, cr, to):
                             terminate_child(child)
                             log.error("job type: {} failed!".format(logtype))
-                            store_logfile(self.job.pr_full_name(),
-                                          self.job.pr_number(),
-                                          self.job.pr_id(), self.job.pr_sha1(),
-                                          current_log_file)
+                            store_logfile(self.job.payload, current_log_file)
                             return STATUS_FAIL
 
                         if self.stopped():
                             terminate_child(child)
                             log.debug("job type: {} cancelled!".format(logtype))
-                            store_logfile(self.job.pr_full_name(),
-                                          self.job.pr_number(),
-                                          self.job.pr_id(), self.job.pr_sha1(),
-                                          current_log_file)
+                            store_logfile(self.job.payload, current_log_file)
                             return STATUS_CANCEL
 
                     terminate_child(child)
-                store_logfile(self.job.pr_full_name(), self.job.pr_number(),
-                              self.job.pr_id(), self.job.pr_sha1(),
-                              current_log_file)
+                store_logfile(self.job.payload, current_log_file)
         return STATUS_SUCCESS
 
     def run(self):
