@@ -44,12 +44,18 @@ export_history = []
 def get_yaml_cmd(yml_iter):
     cmd = yml_iter.get('cmd', None)
     exp = yml_iter.get('exp', None)
+    check_ret = yml_iter.get('chkret', None)
     to = yml_iter.get('timeout', 3)
-    log.debug("cmd: {}, exp: {}, timeout: {}".format(cmd, exp, to))
-    return cmd, exp, to
+    log.debug("cmd: {}, exp: {}, chkret: {}, timeout: {}".format(
+        cmd, exp, check_ret, to))
+    return cmd, exp, check_ret, to
 
 
-def do_pexpect(child, cmd=None, exp=None, timeout=5, error_pos=1):
+def do_pexpect(child, cmd=None, exp=None, check_retval=None, timeout=5, error_pos=1):
+    if exp is not None and check_retval is not None:
+        log.error("Cannot expect both a string and return value at the time!")
+        return False
+
     if cmd is not None:
         log.debug("Sending: {}".format(cmd))
         # Save the last cd command for other build stages
@@ -61,11 +67,16 @@ def do_pexpect(child, cmd=None, exp=None, timeout=5, error_pos=1):
             global export_history
             export_history.append(cmd)
 
-        child.sendline(cmd)
+        # Append echo $? to the command in case the user specified that the
+        # return value from a command should be checked
+        if check_retval is not None:
+            child.sendline("{};echo $?".format(cmd))
+        else:
+            child.sendline(cmd)
 
+    # Start with a clean expect list
+    e = []
     if exp is not None:
-        e = []
-
         # In the yaml file there could be standalone lines or there could be
         # a list if expected output.
         if isinstance(exp, list):
@@ -73,11 +84,20 @@ def do_pexpect(child, cmd=None, exp=None, timeout=5, error_pos=1):
         else:
             e.append(exp)
             e.append(pexpect.TIMEOUT)
+    elif check_retval is not None:
+        # A good return value contains a single '0' followed by IBART on next
+        # line.
+        e.append('\r\n0\r\nIBART')
+        e.append(pexpect.TIMEOUT)
 
-        log.debug("Expecting: {} (timeout={}, error={})".format(
+        # A bad line is any number not starting with '0' followed by IBART on
+        # the next line.
+        e.append(r'\r\n[^0]\d*\r\nIBART')
+
+    if exp is not None or check_retval is not None:
+        log.debug("Expecting (exp): {} (timeout={}, error={})".format(
             e, timeout, error_pos))
-
-        r = child.expect(e, timeout=timeout)
+        r = child.expect(e, timeout)
         log.debug("Got: {} (value >= {} is considered an error)".format(
             r, error_pos))
         if r >= error_pos:
@@ -130,7 +150,10 @@ def spawn_pexpect_child(job):
         child.sendline(last_cd)
 
     child.sendline('export PS1="IBART $ "')
-    child.expect("IBART")
+    r = child.expect(['IBART \$ ', pexpect.TIMEOUT], 2)
+    if r > 0:
+        log.error("Could not set PS1\n{}".format(child.before))
+        return None
 
     return child
 
@@ -491,8 +514,11 @@ regularly for the stopped() condition."""
 
             # Loop all defined values
             for k, logtype in d_logstr.items():
-                # Clear the log we are about to work with
-                yml_iter = yml_config[logtype]
+                try:
+                    yml_iter = yml_config[logtype]
+                except KeyError:
+                    continue
+
                 child = spawn_pexpect_child(self.job)
                 current_log_file = "{}/{}.log".format(settings.log_dir(), logtype)
                 with open(current_log_file, 'w') as f:
@@ -505,9 +531,10 @@ regularly for the stopped() condition."""
                         continue
 
                     for i in yml_iter:
-                        c, e, t = get_yaml_cmd(i)
+                        log.debug("")
+                        c, e, cr, to = get_yaml_cmd(i)
 
-                        if not do_pexpect(child, c, e, t):
+                        if not do_pexpect(child, c, e, cr, to):
                             terminate_child(child)
                             log.error("job type: {} failed!".format(logtype))
                             store_logfile(self.job.pr_full_name(),
