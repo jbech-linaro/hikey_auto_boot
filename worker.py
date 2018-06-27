@@ -251,11 +251,15 @@ def read_log(log_file_dir, filename):
     return log_line
 
 
-def clear_logfiles(pr_full_name, pr_number, pr_id, pr_sha1):
-    if (pr_full_name is None or pr_number is None or pr_id is None or
-            pr_sha1 is None):
-        log.error("Cannot clear log files (missing parameters)")
+def clear_logfiles(payload):
+    if payload is None:
+        log.error("Cannot clear log file (missing parameters)")
         return
+
+    pr_full_name = github.pr_full_name(payload)
+    pr_number = github.pr_number(payload)
+    pr_id = github.pr_id(payload)
+    pr_sha1 = github.pr_sha1(payload)
 
     log_file_dir = "{p}/{fn}/{n}/{i}/{s}".format(
             p=settings.log_dir(), fn=pr_full_name, n=pr_number, i=pr_id,
@@ -512,9 +516,7 @@ regularly for the stopped() condition."""
 
             # To prevent old logs from showing up on the web-page, start by
             # removing all of them.
-            clear_logfiles(self.job.pr_full_name(),
-                           self.job.pr_number(), self.job.pr_id(),
-                           self.job.pr_sha1())
+            clear_logfiles(self.job.payload)
 
             # Loop all defined values
             for k, logtype in d_logstr.items():
