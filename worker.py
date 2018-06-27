@@ -509,6 +509,9 @@ regularly for the stopped() condition."""
         jobdefs = get_job_definitions()
         print(jobdefs)
 
+        # Just local to save some typing further down
+        payload = self.job.payload
+
         for jd in jobdefs:
             log.info("Start clone, build ... sequence for {}".format(self.job))
             with open(jd, 'r') as yml:
@@ -516,7 +519,7 @@ regularly for the stopped() condition."""
 
             # To prevent old logs from showing up on the web-page, start by
             # removing all of them.
-            clear_logfiles(self.job.payload)
+            clear_logfiles(payload)
 
             # Loop all defined values
             for k, logtype in d_logstr.items():
@@ -531,7 +534,7 @@ regularly for the stopped() condition."""
                     child.logfile_read = f
 
                     if yml_iter is None:
-                        store_logfile(self.job.payload, current_log_file)
+                        store_logfile(payload, current_log_file)
                         continue
 
                     for i in yml_iter:
@@ -541,17 +544,23 @@ regularly for the stopped() condition."""
                         if not do_pexpect(child, c, e, cr, to):
                             terminate_child(child)
                             log.error("job type: {} failed!".format(logtype))
-                            store_logfile(self.job.payload, current_log_file)
+                            store_logfile(payload, current_log_file)
+                            github.update_state(payload, "failure", "Stage {} "
+                                    "failed!".format(logtype))
                             return STATUS_FAIL
 
                         if self.stopped():
                             terminate_child(child)
                             log.debug("job type: {} cancelled!".format(logtype))
-                            store_logfile(self.job.payload, current_log_file)
+                            store_logfile(payload, current_log_file)
+                            github.update_state(payload, "failure", "Job was "
+                                    "stopped by user (stage {})!".format(logtype))
                             return STATUS_CANCEL
 
                     terminate_child(child)
-                store_logfile(self.job.payload, current_log_file)
+                store_logfile(payload, current_log_file)
+
+        github.update_state(payload, "success", "All good!")
         return STATUS_SUCCESS
 
     def run(self):
@@ -567,6 +576,7 @@ regularly for the stopped() condition."""
         pr_sha1 = self.job.pr_sha1()
 
         db_update_job(pr_id, pr_sha1, current_status, "N/A")
+        github.update_state(self.job.payload, "pending", "Job running!")
 
         current_status = d_status[self.start_job()]
 
@@ -614,6 +624,7 @@ class WorkerThread(threading.Thread):
             self.q.append(pr_id_sha1)
             self.job_dict[pr_id_sha1] = Job(payload, True)
             db_update_job(pr_id, pr_sha1, d_status[STATUS_PENDING], "N/A")
+            github.update_state(payload, "pending", "Job added to queue")
 
     def add(self, payload):
         """Responsible of adding new jobs the the job queue."""
@@ -642,6 +653,8 @@ class WorkerThread(threading.Thread):
                         db_update_job(job_in_queue.pr_id(),
                                       job_in_queue.pr_sha1(),
                                       d_status[STATUS_CANCEL], "N/A")
+                        github.update_state(job_in_queue.payload,
+                                "failure", "Job cancelled!")
 
             # Check whether current job also should be stopped (i.e, same
             # PR, but _not_ user initiated).
@@ -660,6 +673,7 @@ class WorkerThread(threading.Thread):
             # TODO: This shouldn't be needed, better to do the update in the
             # db_add_build_record
             db_update_job(pr_id, pr_sha1, d_status[STATUS_PENDING], "N/A")
+            github.update_state(job_in_queue.payload, "pending", "Job added to queue")
 
     def cancel(self, pr_id, pr_sha1):
         force_update = True
@@ -686,6 +700,7 @@ class WorkerThread(threading.Thread):
         # If it wasn't in the queue nor running, then just update the status
         if force_update:
             db_update_job(pr_id, pr_sha1, d_status[STATUS_CANCEL], "N/A")
+            github.update_state(job_in_queue.payload, "failure", "Job cancelled!")
 
     def run(self):
         """Main function taking care of running all jobs in the job queue."""
