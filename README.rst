@@ -12,22 +12,33 @@ It's an tool that can initiate a full clone, build, flash, boot and test cycle i
 
 How to use IBART
 ================
+Ubuntu / Debian packages
+------------------------
+
+.. code:: bash
+
+    $ sudo apt install python3-flask python3-pexpect python3-yaml
+
+GitHub and script preparations
+------------------------------
 - First one needs to setup webhooks_ at GitHub. Important things to configure here is the ``Payload URL``, which should point to the server running IBART. The listening port is by default ``5000``. For ``Content type`` one should select ``application/json``. The secret on the GitHub webhooks page is a string that you need to export in your shell before starting IBART (TODO: add export command). At the section ``Which events would you like to trigger this webhook?`` it is sufficient to select ``Pull requests``.
 - Export your GitHub secret before starting IBART:
 .. code-block:: bash
 
-    export GITHUB_SECRET="my-github-secret"
+    $ export GITHUB_SECRET="my-github-secret"
 
 - Export your GitHub token  before starting IBART:
 .. code-block:: bash
 
-    export GITHUB_TOKEN="my-long-hex-string"
+    $ export GITHUB_TOKEN="my-long-hex-string"
 
 - Set up global settings in ``configs/settings.yaml``
 - Write a job definition and store it in ``jobdefs/my-job.yml``
-- Run ``./websrv.py``
+- Run ``$ ./websrv.py``
 
 If everything done correctly, IBART should now be listening for build requests as well as serve HTML queries at http://my-server:5000. 
+
+
 
 Configuration
 =============
