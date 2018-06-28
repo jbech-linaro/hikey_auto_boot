@@ -673,7 +673,7 @@ class WorkerThread(threading.Thread):
             # TODO: This shouldn't be needed, better to do the update in the
             # db_add_build_record
             db_update_job(pr_id, pr_sha1, d_status[STATUS_PENDING], "N/A")
-            github.update_state(job_in_queue.payload, "pending", "Job added to queue")
+            github.update_state(payload, "pending", "Job added to queue")
 
     def cancel(self, pr_id, pr_sha1):
         force_update = True
