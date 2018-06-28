@@ -121,6 +121,11 @@ Commands
 --------
 Within each section one states commands, expected output and the timeout. Timeout (``timeout``) is by default ``3`` seconds if that is not stated. The expected output (``exp``) is can be omitted if not needed. Most often one either writes a single command (``cmd``) or a combination with all three of them. Here is an example of how a job definition file could look like:
 
+
+.. include:: jobdefs/test.yaml
+    :language: yaml
+
+
 .. code:: yaml
 
     pre_clone:
@@ -140,7 +145,7 @@ Within each section one states commands, expected output and the timeout. Timeou
 This simple test would create a working directory, clone Linux kernel, build it for Arm (timeout 600 seconds) and check whether it was a successful build or not. Note that one can use both this 
 
 .. code:: yaml
-
+    :emphasize-lines: 3
     build:
         - cmd: echo $?
           exp: '0'
