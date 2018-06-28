@@ -16,6 +16,7 @@ import time
 import yaml
 
 from pathlib import Path
+from collections import OrderedDict
 
 # Local modules
 import github
@@ -223,7 +224,7 @@ def get_logs(pr_full_name, pr_number, pr_id, pr_sha1):
 
     log.debug("Getting logs from {}".format(log_file_dir))
 
-    logs = {}
+    logs = OrderedDict()
     for key, logtype in d_logstr.items():
         filename = "{}.log".format(logtype)
         logs[logtype] = read_log(log_file_dir, filename)
