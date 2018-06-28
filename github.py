@@ -48,7 +48,12 @@ def update_state(payload, state, description):
     request['state'] = state
     # TODO: This is something that could/should be added so settings.py instead
     # of just having it as an environment variable.
-    server_url = os.environ['IBART_URL']
+    try:
+        server_url = os.environ['IBART_URL']
+    except KeyError:
+        log.error("Environment variable IBART_URL probably not set, no update"
+                  "sent")
+        return False
 
     _pr_full_name = pr_full_name(payload)
     _pr_number = pr_number(payload)
@@ -64,7 +69,12 @@ def update_state(payload, state, description):
     # log.debug("request: {}".format(request))
 
     # Read the personal token (from GitHub)
-    token = "token {}".format(os.environ['GITHUB_TOKEN'])
+    try:
+        token = "token {}".format(os.environ['GITHUB_TOKEN'])
+    except KeyError:
+        log.error("Environment variable GITHUB_TOKEN probably not set, no"
+                  "update sent")
+        return False
 
     # Set the token
     headers = {'content-type': 'application/json',

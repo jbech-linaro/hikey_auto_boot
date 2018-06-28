@@ -14,7 +14,12 @@ app = Flask(__name__)
 
 
 def verify_hmac_hash(data, signature):
-    github_secret = bytearray(os.environ['GITHUB_SECRET'], 'utf-8')
+    try:
+        github_secret = bytearray(os.environ['GITHUB_SECRET'], 'utf-8')
+    except KeyError:
+        log.error("Environment variable GITHUB_SECRET probably not set")
+        return False
+
     mac = hmac.new(github_secret, msg=data, digestmod=hashlib.sha1)
 
     # Need to convert this to bytearray, since hmac.compare_digest expect
