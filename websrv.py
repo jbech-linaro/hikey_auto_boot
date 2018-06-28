@@ -58,13 +58,13 @@ def show_pr(pr_number):
 @app.route('/restart/<int:pr_id>/<pr_sha1>')
 def restart_page(pr_id, pr_sha1):
     worker.user_add(pr_id, pr_sha1)
-    return 'OK'
+    return redirect(url_for('main_page'))
 
 
 @app.route('/stop/<int:pr_id>/<pr_sha1>')
 def stop_page(pr_id, pr_sha1):
     worker.cancel(pr_id, pr_sha1)
-    return 'OK'
+    return redirect(url_for('main_page'))
 
 
 # logs/jbech-linaro/optee_os/2/149713049/2bcfbd494fd4ce795840697a4d10cdb26f39d6aa
@@ -72,9 +72,8 @@ def stop_page(pr_id, pr_sha1):
 def show_log(owner, project, pr_number, pr_id, pr_sha1):
     pr_full_name = "{}/{}".format(owner, project)
     logs = worker.get_logs(pr_full_name, pr_number, pr_id, pr_sha1)
-    return render_template('job.html', pr_full_name=pr_full_name,
-                           pr_number=pr_number, pr_id=pr_id, pr_sha1=pr_sha1,
-                           logs=logs)
+    sql_data = worker.db_get_job_info(pr_id, pr_sha1)
+    return render_template('job.html', sd=sql_data, logs=logs)
 
 
 @app.route('/payload', methods=['POST'])

@@ -423,6 +423,22 @@ def db_get_pr(pr_number):
     con.close()
     return r
 
+def db_get_job_info(pr_id, pr_sha1):
+    con = db_connect()
+    cur = con.cursor()
+    sql = ("SELECT id, pr_id, sha1, full_name, pr_number, date, run_time, status "
+           "FROM job "
+           "WHERE pr_id = '{}' AND sha1 = '{}' ".format(
+               pr_id, pr_sha1))
+    cur.execute(sql)
+    r = cur.fetchall()
+    if len(r) > 1:
+        log.error("Found duplicated pr_id/pr_sha1 in the database")
+        return -1
+    con.commit()
+    con.close()
+    return r[0]
+
 
 ###############################################################################
 # Utils
@@ -703,7 +719,8 @@ class WorkerThread(threading.Thread):
         # If it wasn't in the queue nor running, then just update the status
         if force_update:
             db_update_job(pr_id, pr_sha1, d_status[STATUS_CANCEL], "N/A")
-            github.update_state(job_in_queue.payload, "failure", "Job cancelled!")
+            payload = db_get_payload_from_pr_id(pr_id, pr_sha1)
+            github.update_state(payload, "failure", "Job cancelled!")
 
     def run(self):
         """Main function taking care of running all jobs in the job queue."""
