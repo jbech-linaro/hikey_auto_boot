@@ -47,6 +47,10 @@ def get_yaml_cmd(yml_iter):
     exp = yml_iter.get('exp', None)
     check_ret = yml_iter.get('chkret', "y")
     to = yml_iter.get('timeout', 3)
+
+    # Force check_ret to None if there is exp.
+    if exp is not None:
+        check_ret = None
     log.debug("cmd: {}, exp: {}, chkret: {}, timeout: {}".format(
         cmd, exp, check_ret, to))
     return cmd, exp, check_ret, to
@@ -160,8 +164,6 @@ def spawn_pexpect_child(job):
 
 
 def terminate_child(child):
-    child.sendline('exit')
-    r = child.expect([pexpect.EOF, pexpect.TIMEOUT], 5)
     child.close()
 
 ###############################################################################
