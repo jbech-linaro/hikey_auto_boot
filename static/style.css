@@ -73,6 +73,8 @@ div.badurl {
 }
 
 .info {
+	font-family: helvetica;
+	font-size: 13px;
 	font-weight: bold; /* Make sure they're bold */
 }
 

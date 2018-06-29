@@ -39,20 +39,21 @@
 			</td>
 		</tr>
 	</table>
-	<p class="info">Links to log-files</p>
 	<ul>
 		{% for key, value in logs.items() %}
 		{% if value %}
-		<li><a href="#{{ key }}">{{ key|title }} log</a></li>
+		<li><a href="#{{ key }}" class="info">{{ key|upper|replace("_", " ") }}</a> 
+			( <a href="#end-{{ key }}" class="info">end</a> )</li>
 		{% endif %}
 		{% endfor %}
 	</ul>
 	{% for key, value in logs.items() %}
 	{% if value %}
-	<p class="info" id="{{ key }}">{{ key|title }} Log (<a href="#top">top</a>)</p>
+	<p class="info" id="{{ key }}">{{ key|upper|replace("_", " ") }} (<a href="#top">top</a>)</p>
 <pre class="logtable">
 {{ value }}
 </pre>
+	<p class="info" id="end-{{ key }}"></p>
 {% endif %}
 {% endfor %}
 </body>
