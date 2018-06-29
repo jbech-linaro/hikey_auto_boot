@@ -36,8 +36,8 @@
 			<td>{{ date }}</td>
 			<td>{{ run_time }}</td>
 			<td>{{ status }}</td>
-			<td><a href="stop/{{ pr_id }}/{{ sha1 }}">[stop]</a> |
-				<a href="restart/{{ pr_id }}/{{ sha1 }}">[restart]</a>
+			<td><a href="{{ url_for('stop_page', pr_id=pr_id, pr_sha1=pr_sha1) }}">[stop]</a> |
+				<a href="{{ url_for('restart_page', pr_id=pr_id, pr_sha1=pr_sha1) }}">[restart]</a>
 			</td>
 		</tr>
 	</table>

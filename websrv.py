@@ -58,13 +58,19 @@ def show_pr(pr_number):
 @app.route('/restart/<int:pr_id>/<pr_sha1>')
 def restart_page(pr_id, pr_sha1):
     worker.user_add(pr_id, pr_sha1)
-    return redirect(url_for('main_page'))
+    #if request.is_secure:
+    #    if request.referrer:
+    #        return redirect(request.referrer)
+    return redirect(request.referrer)
 
 
 @app.route('/stop/<int:pr_id>/<pr_sha1>')
 def stop_page(pr_id, pr_sha1):
     worker.cancel(pr_id, pr_sha1)
-    return redirect(url_for('main_page'))
+    #if request.is_secure:
+    #    if request.referrer:
+    #        return redirect(request.referrer)
+    return redirect(request.referrer)
 
 
 # logs/jbech-linaro/optee_os/2/149713049/2bcfbd494fd4ce795840697a4d10cdb26f39d6aa
