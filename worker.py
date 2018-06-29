@@ -580,9 +580,16 @@ regularly for the stopped() condition."""
         # Just local to save some typing further down
         payload = self.job.payload
 
-        for jd in jobdefs:
+        for jd in settings.local_jobs():
             log.info("Start clone, build ... sequence for {}".format(self.job))
-            with open(jd, 'r') as yml:
+
+            # TODO: Relaying on a separator is a pretty dirty hack, should come
+            # up with a better idea here.
+            jd_str = jd.split(';')
+            jd_file = "{}/{}".format(settings.jobdefs_path(), jd_str[0])
+            jd_name = jd_str[1]
+
+            with open(jd_file, 'r') as yml:
                 yml_config = yaml.load(yml)
 
             # To prevent old logs from showing up on the web-page, start by
@@ -777,7 +784,7 @@ class WorkerThread(threading.Thread):
     def run(self):
         """Main function taking care of running all jobs in the job queue."""
         while(True):
-            time.sleep(3)
+            time.sleep(6)
             print("Checking for work (queue:{})".format(self.q))
 
             if len(self.q) > 0:

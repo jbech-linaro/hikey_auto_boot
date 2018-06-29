@@ -3,12 +3,12 @@ config:
         path: configs
 
 repo:
-        bin: home/optee/bin/repo
-        reference: /home/optee/devel/reference
+        bin: /home/jbech/bin/repo
+        reference: /media/jbech/SSHD_LINUX/devel/optee_projects/reference
 
 toolchain:
-        aarch32_path: /home/optee/devel/reference/toolchains/aarch32/bin
-        aarch64_path: /home/optee/devel/reference/toolchains/aarch64/bin
+        aarch32_path: /media/jbech/SSHD_LINUX/devel/optee_projects/reference/toolchains/aarch32/bin/
+        aarch64_path: /media/jbech/SSHD_LINUX/devel/optee_projects/reference/toolchains/aarch64/bin/
         aarch32_prefix: arm-linux-gnueabihf-
         aarch64_prefix: aarch64-linux-gnu-
 
@@ -20,4 +20,13 @@ log:
         file: logs/core.log
 
 db:
-        file: database/hab.db
+        file: database/ibart.db
+
+# The jobs that this server will run
+jobs:
+        path: jobdefs/examples
+        localdefs:
+                - pull_request_example.yaml;simple pull request
+                - simple_build.yaml;simple build
+        remotedefs:
+                - http://foo.bar/john_doe.yaml

@@ -105,6 +105,37 @@ def db_file():
     except KeyError:
         return "Missing key!"
 
+def jobdefs_path():
+    yml_file = get_settings_yml_file()
+    try:
+        return yml_file['jobs']['path']
+    except KeyError:
+        return "Missing key!"
+
+
+def local_jobs():
+    yml_file = get_settings_yml_file()
+    my_jobs = []
+    try:
+        yml_iter = yml_file['jobs']['localdefs']
+        for i in yml_iter:
+            my_jobs.append("{}".format(i))
+    except KeyError:
+        return "Missing key!"
+    return my_jobs
+
+
+def remote_jobs():
+    yml_file = get_settings_yml_file()
+    my_jobs = []
+    try:
+        yml_iter = yml_file['jobs']['remotedefs']
+        for i in yml_iter:
+            my_jobs.append("{}".format(i))
+    except KeyError:
+        return "Missing key!"
+    return my_jobs
+
 ###############################################################################
 # Everything below this line is just for debugging this
 ###############################################################################
@@ -130,7 +161,10 @@ def initialize():
     log.debug("workspace_path: {}".format(workspace_path()))
     log.debug("log_dir: {}".format(log_dir()))
     log.debug("log_file: {}".format(log_file()))
-    log.debug("db_file {}".format(db_file()))
+    log.debug("db_file: {}".format(db_file()))
+    log.debug("config_path: {}".format(config_path()))
+    log.debug("local_jobs: {}".format(local_jobs()))
+    log.debug("remote_jobs: {}".format(remote_jobs()))
 
 
 def initialize_logger():
