@@ -67,6 +67,11 @@ div.link {
 	text-align: center
 }
 
+div.badurl {
+	font-size: 24px;
+	text-align: center
+}
+
 .info {
 	font-weight: bold; /* Make sure they're bold */
 }
