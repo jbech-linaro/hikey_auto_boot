@@ -438,7 +438,7 @@ def db_get_pr(pr_number):
 
 
 def db_get_unique_pr(pr_full_name, pr_number):
-    if pr_full_name is None or pr_full_name is None:
+    if pr_full_name is None or pr_number is None:
         log.error("Missing parameters!")
     con = db_connect()
     cur = con.cursor()
@@ -447,6 +447,23 @@ def db_get_unique_pr(pr_full_name, pr_number):
            "FROM job "
            "WHERE full_name = '{}' AND pr_number = '{}' "
            "ORDER BY date DESC".format(pr_full_name, pr_number))
+    cur.execute(sql)
+    r = cur.fetchall()
+    con.commit()
+    con.close()
+    return r
+
+
+def db_get_pr_full_name(pr_full_name):
+    if pr_full_name is None:
+        log.error("Missing parameters!")
+    con = db_connect()
+    cur = con.cursor()
+    sql = ("SELECT id, pr_id, sha1, full_name, pr_number, date, run_time, "
+           "status "
+           "FROM job "
+           "WHERE full_name = '{}' "
+           "ORDER BY date DESC".format(pr_full_name))
     cur.execute(sql)
     r = cur.fetchall()
     con.commit()

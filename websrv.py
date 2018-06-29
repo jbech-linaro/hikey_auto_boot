@@ -78,11 +78,16 @@ def show_log(owner, project, pr_number, pr_id, pr_sha1):
 # logs/jbech-linaro/optee_client/1/
 @app.route('/logs/<owner>/<project>/<int:pr_number>')
 def show_unique_pr(owner, project, pr_number):
-    log.debug("calling show_unique_pr")
     pr_full_name = "{}/{}".format(owner, project)
     sql_data = worker.db_get_unique_pr(pr_full_name, pr_number)
     return render_template('unique_pr.html', sd=sql_data)
 
+# logs/jbech-linaro/
+@app.route('/logs/<owner>/<project>')
+def show_pr_full_name(owner, project):
+    pr_full_name = "{}/{}".format(owner, project)
+    sql_data = worker.db_get_pr_full_name(pr_full_name)
+    return render_template('pr_full_name.html', sd=sql_data, project=project)
 
 @app.route('/payload', methods=['POST'])
 def payload():
