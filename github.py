@@ -38,6 +38,11 @@ def pr_statuses_url(payload):
     return payload['pull_request']['statuses_url']
 
 
+def pr_branch(payload):
+    """Returns the name of the commiers branch."""
+    return payload['pull_request']['head']['ref']
+
+
 #update_state("pending", statuses_url, j.git_name, j.github_nbr, "Job added to the queue")
 def update_state(payload, state, description):
     if payload is None or state is None or description is None:

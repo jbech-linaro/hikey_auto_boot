@@ -9,6 +9,7 @@ import sys
 
 # Local imports
 import worker
+import github
 
 app = Flask(__name__)
 
@@ -79,7 +80,10 @@ def show_log(owner, project, pr_number, pr_id, pr_sha1):
     pr_full_name = "{}/{}".format(owner, project)
     logs = worker.get_logs(pr_full_name, pr_number, pr_id, pr_sha1)
     sql_data = worker.db_get_job_info(pr_id, pr_sha1)
-    return render_template('job.html', sd=sql_data, logs=logs)
+    payload = worker.db_get_payload_from_pr_id(pr_id, pr_sha1)
+    commiter_branch = github.pr_branch(payload)
+    return render_template('job.html', sd=sql_data, logs=logs,
+                           commiter_branch=commiter_branch)
 
 # logs/jbech-linaro/optee_client/1/
 @app.route('/logs/<owner>/<project>/<int:pr_number>')
