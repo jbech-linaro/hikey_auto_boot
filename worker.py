@@ -56,7 +56,8 @@ def get_yaml_cmd(yml_iter):
     return cmd, exp, check_ret, to
 
 
-def do_pexpect(child, cmd=None, exp=None, check_retval=None, timeout=5, error_pos=1):
+def do_pexpect(child, cmd=None, exp=None, check_retval=None, timeout=5,
+               error_pos=1):
     if exp is not None and check_retval is not None:
         log.error("Cannot expect both a string and return value at the time!")
         return False
@@ -251,7 +252,19 @@ def read_log(log_file_dir, filename):
     except IOError:
         pass
 
-    return log_line
+    # Add line numbers to the log
+    ctr = 1
+    numbered_log = ""
+    for l in log_line.split('\n'):
+        # TODO: This is pretty inefficient way of doing this
+        numbered_log = numbered_log + "{:>6}:  {}\n".format(ctr, l)
+        ctr += 1
+
+    # If there is no content in the log, then don't return anything
+    if numbered_log == ("     1:  \n") and len(numbered_log) == 10:
+        return None
+
+    return numbered_log
 
 
 def clear_logfiles(payload):
@@ -413,7 +426,8 @@ def db_get_html_row(page):
 def db_get_pr(pr_number):
     con = db_connect()
     cur = con.cursor()
-    sql = ("SELECT id, pr_id, sha1, full_name, pr_number, date, run_time, status "
+    sql = ("SELECT id, pr_id, sha1, full_name, pr_number, date, run_time, "
+           "status "
            "FROM job "
            "WHERE pr_number = '{}' "
            "ORDER BY date DESC".format(pr_number))
@@ -423,10 +437,12 @@ def db_get_pr(pr_number):
     con.close()
     return r
 
+
 def db_get_job_info(pr_id, pr_sha1):
     con = db_connect()
     cur = con.cursor()
-    sql = ("SELECT id, pr_id, sha1, full_name, pr_number, date, run_time, status "
+    sql = ("SELECT id, pr_id, sha1, full_name, pr_number, date, run_time, "
+           "status "
            "FROM job "
            "WHERE pr_id = '{}' AND sha1 = '{}' ".format(
                pr_id, pr_sha1))
@@ -548,7 +564,8 @@ regularly for the stopped() condition."""
                     continue
 
                 child = spawn_pexpect_child(self.job)
-                current_log_file = "{}/{}.log".format(settings.log_dir(), logtype)
+                current_log_file = "{}/{}.log".format(settings.log_dir(),
+                                                      logtype)
                 with open(current_log_file, 'w') as f:
                     child.logfile_read = f
 
@@ -565,15 +582,17 @@ regularly for the stopped() condition."""
                             log.error("job type: {} failed!".format(logtype))
                             store_logfile(payload, current_log_file)
                             github.update_state(payload, "failure", "Stage {} "
-                                    "failed!".format(logtype))
+                                                "failed!".format(logtype))
                             return STATUS_FAIL
 
                         if self.stopped():
                             terminate_child(child)
-                            log.debug("job type: {} cancelled!".format(logtype))
+                            log.debug("job type: {} cancelled!".format(
+                                      logtype))
                             store_logfile(payload, current_log_file)
                             github.update_state(payload, "failure", "Job was "
-                                    "stopped by user (stage {})!".format(logtype))
+                                                "stopped by user (stage {})!"
+                                                "".format(logtype))
                             return STATUS_CANCEL
 
                     terminate_child(child)
@@ -673,7 +692,7 @@ class WorkerThread(threading.Thread):
                                       job_in_queue.pr_sha1(),
                                       d_status[STATUS_CANCEL], "N/A")
                         github.update_state(job_in_queue.payload,
-                                "failure", "Job cancelled!")
+                                            "failure", "Job cancelled!")
 
             # Check whether current job also should be stopped (i.e, same
             # PR, but _not_ user initiated).
