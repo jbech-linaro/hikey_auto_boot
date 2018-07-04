@@ -1,0 +1,57 @@
+pre_clone:
+        - cmd: export MYWORKSPACE=/home/optee/devel/hikey
+        - cmd: rm -rf /home/optee/devel/hikey
+          timeout: 15
+        - cmd: mkdir -p $MYWORKSPACE
+
+clone:
+        - cmd: cd $MYWORKSPACE
+          # Clone the git corresponding to the pull request
+        - cmd: repo init -u https://github.com/OP-TEE/manifest.git -m hikey.xml --reference /home/optee/devel/reference
+          timeout: 15
+        - cmd: repo sync -j4
+          timeout: 60
+
+post_clone:
+        - cmd: cd $PR_NAME
+          # Add a new remote pointing to the pull request submitters tree
+        - cmd: git remote add submitter $PR_CLONE_URL
+          # Update to see the actual changes
+        - cmd: git remote update
+          timeout: 20
+          # Checkout the commit corresponding to the pull request
+        - cmd: git checkout $PR_SHA1
+
+pre_build:
+        # I'm using a locally downloaded toolchain instead of downloading it
+        # every time.
+        - cmd: cd $MYWORKSPACE
+        - cmd: ln -s /home/optee/devel/reference/toolchains .
+        - cmd: cd $MYWORKSPACE/build
+          #- cmd: make toolchains -j2
+          # Also save/use the downloaded buildroot files
+        - cmd: export BR2_DL_DIR=/tmp/buildroot_dl
+build:
+        - cmd: make -j8
+          timeout: 1500
+
+flash:
+        - cmd: echo ToDo
+
+          #boot:
+          #        - cmd: '$QEMU -nographic -monitor none -machine virt -machine secure=on -cpu cortex-a15 -smp $QEMU_SMP -d unimp -semihosting-config enable,target=native -m 1057 -serial stdio -serial file:serial1.log -bios $BL1_BIN'
+          #          exp: 'buildroot login:'
+          #          timeout: 20
+          #        - cmd: root
+          #          exp: '\r\n#'
+          #          # Set a unique prompt
+          #        - cmd: 'export PS1="IBART $ "'
+          #          exp: '\r\nIBART'
+          #          # This check and the return value check below is also a special case
+          #          # for testing QEMU (if we get rid of empty lines we could probably
+          #          # get rid of this).
+          #        - cmd: xtest
+          #          exp: '\r\nIBART'
+          #          timeout: 600
+          #        - cmd: echo $?
+          #          exp: '\r\n0'
