@@ -723,6 +723,7 @@ class WorkerThread(threading.Thread):
         pr_id = github.pr_id(payload)
         pr_number = github.pr_number(payload)
         pr_sha1 = github.pr_sha1(payload)
+        pr_full_name = github.pr_full_name(payload)
 
         with self.lock:
             log.info("Got GitHub initiated add {}/{} --> PR#{}".format(
@@ -733,7 +734,8 @@ class WorkerThread(threading.Thread):
                 job_in_queue = self.job_dict[elem]
                 # Remove existing jobs as long as they are not user initiated
                 # jobs.
-                if (job_in_queue.pr_number() == pr_number):
+                if (job_in_queue.pr_number() == pr_number and
+                        job_in_queue.pr_full_name() == pr_full_name):
                     if not job_in_queue.user_initiated:
                         log.debug("Non user initiated job found in queue, "
                                   "removing {}".format(elem))
@@ -747,7 +749,8 @@ class WorkerThread(threading.Thread):
             # Check whether current job also should be stopped (i.e, same
             # PR, but _not_ user initiated).
             if (self.jt is not None and
-                    self.jt.job.pr_number() == pr_number and not
+                    self.jt.job.pr_number() == pr_number and
+                    self.jt.job.pr_full_name == pr_full_name and not
                     self.jt.job.user_initiated):
                 log.debug("Non user initiated job found running, "
                           "stopping {}".format(self.jt.job))
