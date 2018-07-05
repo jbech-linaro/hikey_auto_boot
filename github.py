@@ -43,7 +43,6 @@ def pr_branch(payload):
     return payload['pull_request']['head']['ref']
 
 
-#update_state("pending", statuses_url, j.git_name, j.github_nbr, "Job added to the queue")
 def update_state(payload, state, description):
     if payload is None or state is None or description is None:
         log.error("Missing one or several parameters")

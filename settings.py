@@ -105,6 +105,7 @@ def db_file():
     except KeyError:
         return "Missing key!"
 
+
 def jobdefs_path():
     yml_file = get_settings_yml_file()
     try:

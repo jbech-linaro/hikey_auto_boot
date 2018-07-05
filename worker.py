@@ -218,6 +218,9 @@ d_logstr = {
 
 
 def get_logs(pr_full_name, pr_number, pr_id, pr_sha1):
+    """The function returns a dictionary with dictionaries where the high level
+       dictionary have 'key' corresponding job definition and the inner
+       dictionaries corresponds to each individual log files."""
     if (pr_full_name is None or pr_number is None or pr_id is None or
             pr_sha1 is None):
         log.error("Cannot store log file (missing parameters)")
@@ -254,12 +257,9 @@ def read_log(filename, zip_file):
         ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
         # TODO: Get rid of "logs/"
         filename = "logs/{}".format(filename)
-        log.debug("Open zip file: {}".format(zip_file))
-        log.debug("  Look for: {}".format(filename))
         with zipfile.ZipFile(zip_file) as myzip:
             with myzip.open(filename) as myfile:
                 log_line = ansi_escape.sub('', myfile.read().decode('utf-8'))
-                log.debug("Found it!")
     except (IOError, KeyError) as e:
         pass
 
@@ -318,9 +318,9 @@ def store_logfile(payload, current_file, full_log_file):
     source = current_file
     dest = "{d}/{f}".format(d=log_file_dir, f=full_log_file)
 
-
     try:
-        zipfile.ZipFile(dest, mode='a', compression=zipfile.ZIP_DEFLATED).write(source)
+        zipfile.ZipFile(dest, mode='a',
+                        compression=zipfile.ZIP_DEFLATED).write(source)
     except FileNotFoundError:
         log.error("Couldn't find file {}".format(dest))
 
@@ -630,7 +630,8 @@ regularly for the stopped() condition."""
                         if not do_pexpect(child, c, e, cr, to):
                             terminate_child(child)
                             log.error("job type: {} failed!".format(logtype))
-                            store_logfile(payload, current_log_file, full_log_file)
+                            store_logfile(payload, current_log_file,
+                                          full_log_file)
                             github.update_state(payload, "failure", "Stage {} "
                                                 "failed!".format(logtype))
                             return STATUS_FAIL
@@ -639,7 +640,8 @@ regularly for the stopped() condition."""
                             terminate_child(child)
                             log.debug("job type: {} cancelled!".format(
                                       logtype))
-                            store_logfile(payload, current_log_file, full_log_file)
+                            store_logfile(payload, current_log_file,
+                                          full_log_file)
                             github.update_state(payload, "failure", "Job was "
                                                 "stopped by user (stage {})!"
                                                 "".format(logtype))
@@ -798,7 +800,6 @@ class WorkerThread(threading.Thread):
         """Main function taking care of running all jobs in the job queue."""
         while(True):
             time.sleep(3)
-            #print("Checking for work (queue:{})".format(self.q))
 
             if len(self.q) > 0:
                 with self.lock:

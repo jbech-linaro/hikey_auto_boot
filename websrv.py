@@ -59,7 +59,7 @@ def show_pr(pr_number):
 @app.route('/restart/<int:pr_id>/<pr_sha1>')
 def restart_page(pr_id, pr_sha1):
     worker.user_add(pr_id, pr_sha1)
-    #if request.is_secure:
+    # if request.is_secure:
     #    if request.referrer:
     #        return redirect(request.referrer)
     return redirect(request.referrer)
@@ -68,7 +68,7 @@ def restart_page(pr_id, pr_sha1):
 @app.route('/stop/<int:pr_id>/<pr_sha1>')
 def stop_page(pr_id, pr_sha1):
     worker.cancel(pr_id, pr_sha1)
-    #if request.is_secure:
+    # if request.is_secure:
     #    if request.referrer:
     #        return redirect(request.referrer)
     return redirect(request.referrer)
@@ -85,6 +85,7 @@ def show_log(owner, project, pr_number, pr_id, pr_sha1):
     return render_template('job.html', sd=sql_data, logs=logs,
                            commiter_branch=commiter_branch)
 
+
 # logs/jbech-linaro/optee_client/1/
 @app.route('/logs/<owner>/<project>/<int:pr_number>')
 def show_unique_pr(owner, project, pr_number):
@@ -92,12 +93,14 @@ def show_unique_pr(owner, project, pr_number):
     sql_data = worker.db_get_unique_pr(pr_full_name, pr_number)
     return render_template('unique_pr.html', sd=sql_data)
 
+
 # logs/jbech-linaro/
 @app.route('/logs/<owner>/<project>')
 def show_pr_full_name(owner, project):
     pr_full_name = "{}/{}".format(owner, project)
     sql_data = worker.db_get_pr_full_name(pr_full_name)
     return render_template('pr_full_name.html', sd=sql_data, project=project)
+
 
 @app.route('/payload', methods=['POST'])
 def payload():
@@ -113,11 +116,13 @@ def payload():
         payload = request.get_json()
 
         # Only do real work when it working with an open pull request
-        if payload['action'] != "synchronize" and payload['action'] != "opened":
+        if (payload['action'] != "synchronize" and
+                payload['action'] != "opened"):
             return 'OK'
 
         worker.add(payload)
     return 'OK'
+
 
 @app.errorhandler(404)
 def page_not_found(error):
