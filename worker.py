@@ -14,6 +14,7 @@ import sys
 import threading
 import time
 import yaml
+import zipfile
 
 from pathlib import Path
 from collections import OrderedDict
@@ -243,13 +244,15 @@ def read_log(log_file_dir, filename):
 
     # TODO: Check for "../" in log_file_dir so we are not vulnerable to
     # injection attacks.
-    log_file = "{d}/{f}".format(d=log_file_dir, f=filename)
+    zip_log_file = "{d}/{f}.zip".format(d=log_file_dir, f=filename)
     log_line = ""
     try:
         ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
-        with open(log_file, 'r') as f:
-            # Let's remove ANSI escape characters
-            log_line = ansi_escape.sub('', f.read())
+        filename = "logs/{}".format(filename)
+        log.debug("Open zip file: {}".format(filename))
+        with zipfile.ZipFile(zip_log_file) as myzip:
+            with myzip.open(filename) as myfile:
+                log_line = ansi_escape.sub('', myfile.read().decode('utf-8'))
     except IOError:
         pass
 
@@ -282,7 +285,7 @@ def clear_logfiles(payload):
             s=pr_sha1)
 
     for key, logtype in d_logstr.items():
-        full_filename = "{}/{}.log".format(log_file_dir, logtype)
+        full_filename = "{}/{}.log.zip".format(log_file_dir, logtype)
         if os.path.isfile(full_filename):
             os.remove(full_filename)
 
@@ -308,13 +311,9 @@ def store_logfile(payload, current_file):
 
     source = current_file
     filename = Path(current_file).name
-    dest = "{d}/{f}".format(d=log_file_dir, f=filename)
+    dest = "{d}/{f}.zip".format(d=log_file_dir, f=filename)
 
-    try:
-        os.rename(source, dest)
-    except OSError:
-        log.error("Couldn't move log file (from: {}, to: {}".format(
-            source, dest))
+    zipfile.ZipFile(dest, mode='w', compression=zipfile.ZIP_DEFLATED).write(source)
 
 # -----------------------------------------------------------------------------
 # DB RUN
