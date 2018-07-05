@@ -111,6 +111,11 @@ def payload():
 
     if request.headers.get('X-GitHub-Event') == "pull_request":
         payload = request.get_json()
+
+        # Only do real work when it working with an open pull request
+        if payload['action'] != "synchronize" and payload['action'] != "opened":
+            return 'OK'
+
         worker.add(payload)
     return 'OK'
 
