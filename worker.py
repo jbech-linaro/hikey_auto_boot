@@ -16,8 +16,8 @@ import time
 import yaml
 import zipfile
 
-from pathlib import Path
 from collections import OrderedDict
+from pathlib import Path
 
 # Local modules
 import github
@@ -227,33 +227,40 @@ def get_logs(pr_full_name, pr_number, pr_id, pr_sha1):
             p=settings.log_dir(), fn=pr_full_name, n=pr_number, i=pr_id,
             s=pr_sha1)
 
-    log.debug("Getting logs from {}".format(log_file_dir))
+    log.debug("Getting logs from folder: {}".format(log_file_dir))
 
-    logs = OrderedDict()
-    for key, logtype in d_logstr.items():
-        filename = "{}.log".format(logtype)
-        logs[logtype] = read_log(log_file_dir, filename)
+    all_logs = OrderedDict()
+    for zf in sorted(glob.glob("{}/*.zip".format(log_file_dir))):
+        logs = OrderedDict()
+        log.debug("Unpacking zip-file: {}".format(zf))
+        for key, logtype in d_logstr.items():
+            filename = "{}.log".format(logtype)
+            logs[logtype] = read_log(filename, zf)
+        # Use job definition as key when return log from multi definition
+        # jobs.
+        jd = Path(zf).name.replace(".zip", "")
+        all_logs[jd] = logs
+    return all_logs
 
-    return logs
 
-
-def read_log(log_file_dir, filename):
-    if log_file_dir is None or filename is None:
-        log.error("Cannot store log file (missing parameters)")
+def read_log(filename, zip_file):
+    """This function extracts a single log file from a certain zip-file."""
+    if filename is None or zip_file is None:
+        log.error("Cannot read log file (missing parameters)")
         return
 
-    # TODO: Check for "../" in log_file_dir so we are not vulnerable to
-    # injection attacks.
-    zip_log_file = "{d}/{f}.zip".format(d=log_file_dir, f=filename)
     log_line = ""
     try:
         ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
+        # TODO: Get rid of "logs/"
         filename = "logs/{}".format(filename)
-        log.debug("Open zip file: {}".format(filename))
-        with zipfile.ZipFile(zip_log_file) as myzip:
+        log.debug("Open zip file: {}".format(zip_file))
+        log.debug("  Look for: {}".format(filename))
+        with zipfile.ZipFile(zip_file) as myzip:
             with myzip.open(filename) as myfile:
                 log_line = ansi_escape.sub('', myfile.read().decode('utf-8'))
-    except IOError:
+                log.debug("Found it!")
+    except (IOError, KeyError) as e:
         pass
 
     # Add line numbers to the log
@@ -284,14 +291,13 @@ def clear_logfiles(payload):
             p=settings.log_dir(), fn=pr_full_name, n=pr_number, i=pr_id,
             s=pr_sha1)
 
-    for key, logtype in d_logstr.items():
-        full_filename = "{}/{}.log.zip".format(log_file_dir, logtype)
-        if os.path.isfile(full_filename):
-            os.remove(full_filename)
+    for zf in glob.glob("{}/*.zip".format(log_file_dir)):
+        if os.path.isfile(zf):
+            os.remove(zf)
 
 
-def store_logfile(payload, current_file):
-    if (payload is None or current_file is None):
+def store_logfile(payload, current_file, full_log_file):
+    if (payload is None or current_file is None or full_log_file is None):
         log.error("Cannot store log file (missing parameters)")
         return
 
@@ -310,10 +316,13 @@ def store_logfile(payload, current_file):
         os.makedirs(log_file_dir)
 
     source = current_file
-    filename = Path(current_file).name
-    dest = "{d}/{f}.zip".format(d=log_file_dir, f=filename)
+    dest = "{d}/{f}".format(d=log_file_dir, f=full_log_file)
 
-    zipfile.ZipFile(dest, mode='w', compression=zipfile.ZIP_DEFLATED).write(source)
+
+    try:
+        zipfile.ZipFile(dest, mode='a', compression=zipfile.ZIP_DEFLATED).write(source)
+    except FileNotFoundError:
+        log.error("Couldn't find file {}".format(dest))
 
 # -----------------------------------------------------------------------------
 # DB RUN
@@ -515,7 +524,7 @@ def get_running_time(time_start):
 
 
 def get_job_definitions():
-    return [jd for jd in glob.glob("jobdefs/*.yaml")]
+    return sorted([jd for jd in glob.glob("jobdefs/*.yaml")])
 
 ###############################################################################
 # Jobs
@@ -578,26 +587,24 @@ regularly for the stopped() condition."""
         global d_logstr
 
         jobdefs = get_job_definitions()
-        print(jobdefs)
 
         # Just local to save some typing further down
         payload = self.job.payload
 
-        for jd in settings.local_jobs():
+        # To prevent old logs from showing up on the web-page, start by
+        # removing all of them.
+        clear_logfiles(payload)
+
+        for jd in jobdefs:
             log.info("Start clone, build ... sequence for {}".format(self.job))
 
-            # TODO: Relaying on a separator is a pretty dirty hack, should come
-            # up with a better idea here.
-            jd_str = jd.split(';')
-            jd_file = "{}/{}".format(settings.jobdefs_path(), jd_str[0])
-            jd_name = jd_str[1]
+            # Replace .yaml with .zip
+            full_log_file = Path(jd).name.replace(".yaml", ".zip")
 
-            with open(jd_file, 'r') as yml:
+            log.debug("full_log_file: {}".format(full_log_file))
+
+            with open(jd, 'r') as yml:
                 yml_config = yaml.load(yml)
-
-            # To prevent old logs from showing up on the web-page, start by
-            # removing all of them.
-            clear_logfiles(payload)
 
             # Loop all defined values
             for k, logtype in d_logstr.items():
@@ -613,7 +620,7 @@ regularly for the stopped() condition."""
                     child.logfile_read = f
 
                     if yml_iter is None:
-                        store_logfile(payload, current_log_file)
+                        store_logfile(payload, current_log_file, full_log_file)
                         continue
 
                     for i in yml_iter:
@@ -623,7 +630,7 @@ regularly for the stopped() condition."""
                         if not do_pexpect(child, c, e, cr, to):
                             terminate_child(child)
                             log.error("job type: {} failed!".format(logtype))
-                            store_logfile(payload, current_log_file)
+                            store_logfile(payload, current_log_file, full_log_file)
                             github.update_state(payload, "failure", "Stage {} "
                                                 "failed!".format(logtype))
                             return STATUS_FAIL
@@ -632,14 +639,14 @@ regularly for the stopped() condition."""
                             terminate_child(child)
                             log.debug("job type: {} cancelled!".format(
                                       logtype))
-                            store_logfile(payload, current_log_file)
+                            store_logfile(payload, current_log_file, full_log_file)
                             github.update_state(payload, "failure", "Job was "
                                                 "stopped by user (stage {})!"
                                                 "".format(logtype))
                             return STATUS_CANCEL
 
                     terminate_child(child)
-                store_logfile(payload, current_log_file)
+                store_logfile(payload, current_log_file, full_log_file)
 
         github.update_state(payload, "success", "All good!")
         return STATUS_SUCCESS
@@ -787,8 +794,8 @@ class WorkerThread(threading.Thread):
     def run(self):
         """Main function taking care of running all jobs in the job queue."""
         while(True):
-            time.sleep(6)
-            print("Checking for work (queue:{})".format(self.q))
+            time.sleep(3)
+            #print("Checking for work (queue:{})".format(self.q))
 
             if len(self.q) > 0:
                 with self.lock:

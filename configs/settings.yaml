@@ -25,7 +25,5 @@ db:
 # The jobs that this server will run
 jobs:
         path: jobdefs/examples
-        localdefs:
-                - hikey6220.yaml;HiKey6220
         remotedefs:
                 - http://foo.bar/john_doe.yaml

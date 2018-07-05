@@ -1,13 +1,13 @@
 pre_clone:
-        - cmd: export MYWORKSPACE=/media/jbech/SSHD_LINUX/devel/optee_projects/qemu
-        - cmd: rm -rf /media/jbech/SSHD_LINUX/devel/optee_projects/qemu
+        - cmd: export MYWORKSPACE=/home/optee/devel/qemu
+        - cmd: rm -rf /home/optee/devel/qemu
           timeout: 15
         - cmd: mkdir -p $MYWORKSPACE
 
 clone:
         - cmd: cd $MYWORKSPACE
           # Clone the git corresponding to the pull request
-        - cmd: repo init -u https://github.com/OP-TEE/manifest.git -m default.xml --reference /media/jbech/SSHD_LINUX/devel/optee_projects/reference
+        - cmd: repo init -u https://github.com/OP-TEE/manifest.git -m default.xml --reference /home/optee/devel/reference
           timeout: 15
         - cmd: repo sync -j4
           timeout: 60
@@ -26,7 +26,7 @@ pre_build:
         # I'm using a locally downloaded toolchain instead of downloading it
         # every time.
         - cmd: cd $MYWORKSPACE
-        - cmd: ln -s /media/jbech/SSHD_LINUX/devel/optee_projects/reference/toolchains .
+        - cmd: ln -s /home/optee/devel/reference/toolchains .
         - cmd: cd $MYWORKSPACE/build
           #- cmd: make toolchains -j2
           # Also save/use the downloaded buildroot files

@@ -40,20 +40,35 @@
 		</tr>
 	</table>
 	<ul>
+		{## Outer loop is the jobs that was running ##}
 		{% for key, value in logs.items() %}
 		{% if value %}
-		<li><a href="#{{ key }}" class="info">{{ key|upper|replace("_", " ") }}</a> 
-			( <a href="#end-{{ key }}" class="info">end</a> )</li>
+			<li>{{ key|upper|replace("_", " ") }}</li>
+			<ul>
+			{% for inner_key, inner_value in value.items() %}
+			{% if inner_value %}
+
+			<li><a href="#{{ key }}-{{ inner_key }}" class="info">{{ inner_key|upper|replace("_", " ") }}</a>
+				( <a href="#end-{{ key }}-{{ inner_key }}" class="info">end</a> )</li>
+			{% endif %}
+			{% endfor %}
+			</ul>
+	<br>
 		{% endif %}
 		{% endfor %}
 	</ul>
 	{% for key, value in logs.items() %}
+
 	{% if value %}
-	<p class="info" id="{{ key }}">{{ key|upper|replace("_", " ") }} (<a href="#top">top</a>)</p>
+		{% for inner_key, inner_value in value.items() %}
+		{% if inner_value %}
+		<p class="info" id="{{ key }}-{{ inner_key }}">{{ key|upper|replace("_", " ") }} - {{ inner_key|upper|replace("_", " ") }} (<a href="#top">top</a>)</p>
 <pre class="logtable">
-{{ value }}
+{{ inner_value }}
 </pre>
-	<p class="info" id="end-{{ key }}"></p>
+<p class="info" id="end-{{ key }}-{{ inner_key }}"></p>
+		{% endif %}
+		{% endfor %}
 {% endif %}
 {% endfor %}
 </body>
