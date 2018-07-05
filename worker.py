@@ -121,7 +121,8 @@ def export_variables(child, job):
             "export PR_NUMBER={}".format(job.pr_number()),
             "export PR_NAME={}".format(job.pr_name()),
             "export PR_FULL_NAME={}".format(job.pr_full_name()),
-            "export PR_CLONE_URL={}".format(job.pr_clone_url())
+            "export PR_CLONE_URL={}".format(job.pr_clone_url()),
+            "export PR_BRANCH={}".format(job.pr_branch())
     ]
 
     for e in exported_variables:
@@ -553,6 +554,9 @@ class Job():
 
     def pr_clone_url(self):
         return github.pr_clone_url(self.payload)
+
+    def pr_branch(self):
+        return github.pr_branch(self.payload)
 
 
 class JobThread(threading.Thread):
