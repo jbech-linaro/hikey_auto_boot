@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import os
 import serial
 import subprocess
 import time
@@ -12,7 +13,8 @@ import logging
 ################################################################################
 # Relay logic
 ################################################################################
-RELAY_BINARY = "./hidusb-relay-cmd"
+RELAY_BINARY = "{}/{}".format(os.path.dirname(os.path.realpath(__file__)),
+                              './hidusb-relay-cmd')
 
 class Relay():
     """ Represents an single relay """
