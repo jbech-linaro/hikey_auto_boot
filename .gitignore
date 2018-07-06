@@ -5,3 +5,4 @@ last_blob.json
 configs/*
 database/*
 logs/*
+docs/_build
