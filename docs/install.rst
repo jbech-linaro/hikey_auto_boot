@@ -47,7 +47,7 @@ GitHub
 
 Webhooks
 ~~~~~~~~
-First one needs to setup webhooks_ at GitHub. Important things to configure here is the ``Payload URL``, which should point to the server running IBART. The listening port is by default ``5000``. For ``Content type`` one should select ``application/json``. The secret on the GitHub webhooks page is a string that you need to export in your shell before starting IBART (see below). At the section ``Which events would you like to trigger this webhook?`` it is sufficient to select ``Pull requests``.
+First one needs to setup webhooks_ at GitHub. Important things to configure here is the ``Payload URL``, which should point to the server running IBART. The listening port is by default ``5000``. For ``Content type`` one should select ``application/json``. The secret on the GitHub webhooks page is a string that you need to export in your shell before starting IBART (see "Running IBART/Exports"). At the section ``Which events would you like to trigger this webhook?`` it is sufficient to select ``Pull requests``.
 
 .. _webhooks: https://developer.github.com/webhooks/creating
 
