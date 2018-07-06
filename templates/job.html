@@ -39,24 +39,25 @@
 			</td>
 		</tr>
 	</table>
+	{## Outer loop is the jobs that was running ##}
+	{% for key, value in logs.items() %}
+	{% if value %}
 	<ul>
-		{## Outer loop is the jobs that was running ##}
-		{% for key, value in logs.items() %}
-		{% if value %}
 			<li>{{ key|upper|replace("_", " ") }}</li>
-			<ul>
-			{% for inner_key, inner_value in value.items() %}
-			{% if inner_value %}
+			<li>
+				<ul>
+				{% for inner_key, inner_value in value.items() %}
+				{% if inner_value %}
 
-			<li><a href="#{{ key }}-{{ inner_key }}" class="info">{{ inner_key|upper|replace("_", " ") }}</a>
-				( <a href="#end-{{ key }}-{{ inner_key }}" class="info">end</a> )</li>
-			{% endif %}
-			{% endfor %}
-			</ul>
-	<br>
-		{% endif %}
-		{% endfor %}
+				<li><a href="#{{ key }}-{{ inner_key }}" class="info">{{ inner_key|upper|replace("_", " ") }}</a>
+					( <a href="#end-{{ key }}-{{ inner_key }}" class="info">end</a> )</li>
+				{% endif %}
+				{% endfor %}
+				</ul>
+			</li>
 	</ul>
+	{% endif %}
+	{% endfor %}
 	{% for key, value in logs.items() %}
 
 	{% if value %}
