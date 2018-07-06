@@ -57,3 +57,10 @@ You need to generate a personal access token for your GitHub account. Note that 
 
 .. _Peronal access token: https://github.com/settings/tokens
 
+Clone IBART
+-----------
+Obviously one need to clone IBART also, it doesn't matter where it is placed.
+
+.. code-block:: bash
+
+    $ git clone https://github.com/jbech-linaro/ibart.git
