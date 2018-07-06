@@ -63,9 +63,9 @@ From user point of view there is no difference. But under the hood, the later is
 
 Exported variables
 ------------------
-Under the hood IBART uses pexpect_ and for each section the job-definition file (yaml) it will spawn a new shell. This means that things are not normally carried over between sections in the job-definition file. But since it is both cumbersome and easy to forget export the same things over and over again, IBART saves every export it sees and when entering a new section it will export the same environment variables again. So, from a user perspective exports will work as expected.
+Under the hood IBART uses `pexpect`_ and for each section the job-definition file (yaml) it will spawn a new shell. This means that things are not normally carried over between sections in the job-definition file. But since it is both cumbersome and easy to forget export the same things over and over again, IBART saves every export it sees and when entering a new section it will export the same environment variables again. So, from a user perspective exports will work as expected.
 
-.. _static: http://flask.pocoo.org/docs/1.0/quickstart/#static-files
+.. _pexpect: http://pexpect.readthedocs.io/en/stable/index.html
 
 Directory changes
 -----------------

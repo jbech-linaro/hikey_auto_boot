@@ -1,5 +1,5 @@
-IBART - I Build And Run Tests documentation
-===========================================
+IBART - I Build And Run Tests
+=============================
 
 The main documentation for the site is organized into a couple sections:
 
@@ -163,5 +163,4 @@ The main documentation for the site is organized into a couple sections:
 .. - Whatever is in the job definition file will be executed and it will do this with the same permissions as the server itself. So if one type ``cmd: rm -rf $HOME`` in the job definition file, then all files in the servers' $HOME folder **will** be deleted. So be very careful with what you or someone else puts into job definition file. 
 .. 
 .. .. _Jinja2: http://jinja.pocoo.org/docs/2.10/
-.. .. _pexpect: http://pexpect.readthedocs.io/en/stable/index.html
 .. .. _static: http://flask.pocoo.org/docs/1.0/quickstart/#static-files
