@@ -8,8 +8,9 @@ import os
 import sys
 
 # Local imports
-import worker
+import db
 import github
+import worker
 
 app = Flask(__name__)
 
@@ -39,21 +40,14 @@ def dump_json_blob_to_file(request, filename="last_blob.json"):
 
 @app.route('/')
 def main_page(page=1):
-    sql_data = worker.db_get_html_row(page)
+    sql_data = db.get_html_row(page)
     return render_template('main.html', sd=sql_data, page=page)
 
 
 @app.route('/<int:page>')
 def main_paginate(page):
-    sql_data = worker.db_get_html_row(page)
+    sql_data = db.get_html_row(page)
     return render_template('main.html', sd=sql_data, page=page)
-
-
-# TODO: This will show PRs from all gits and not a unique git
-@app.route('/pr/<int:pr_number>')
-def show_pr(pr_number):
-    sql_data = worker.db_get_pr(pr_number)
-    return render_template('pr.html', sd=sql_data, pr_number=pr_number)
 
 
 @app.route('/restart/<int:pr_id>/<pr_sha1>')
@@ -74,32 +68,39 @@ def stop_page(pr_id, pr_sha1):
     return redirect(request.referrer)
 
 
-# logs/jbech-linaro/optee_os/2/149713049/2bcfbd494fd4ce795840697a4d10cdb26f39d6aa
-@app.route('/logs/<owner>/<project>/<int:pr_number>/<int:pr_id>/<pr_sha1>')
-def show_log(owner, project, pr_number, pr_id, pr_sha1):
-    pr_full_name = "{}/{}".format(owner, project)
-    logs = worker.get_logs(pr_full_name, pr_number, pr_id, pr_sha1)
-    sql_data = worker.db_get_job_info(pr_id, pr_sha1)
-    payload = worker.db_get_payload_from_pr_id(pr_id, pr_sha1)
-    commiter_branch = github.pr_branch(payload)
-    return render_template('job.html', sd=sql_data, logs=logs,
-                           commiter_branch=commiter_branch)
-
-
-# logs/jbech-linaro/optee_client/1/
-@app.route('/logs/<owner>/<project>/<int:pr_number>')
-def show_unique_pr(owner, project, pr_number):
-    pr_full_name = "{}/{}".format(owner, project)
-    sql_data = worker.db_get_unique_pr(pr_full_name, pr_number)
-    return render_template('unique_pr.html', sd=sql_data)
+# TODO: This will show PRs from all gits and not a unique git
+@app.route('/pr/<int:pr_number>')
+def show_pr(pr_number):
+    sql_data = db.get_pr(pr_number)
+    return render_template('pr.html', sd=sql_data, pr_number=pr_number)
 
 
 # logs/jbech-linaro/
 @app.route('/logs/<owner>/<project>')
 def show_pr_full_name(owner, project):
     pr_full_name = "{}/{}".format(owner, project)
-    sql_data = worker.db_get_pr_full_name(pr_full_name)
+    sql_data = db.get_pr_full_name(pr_full_name)
     return render_template('pr_full_name.html', sd=sql_data, project=project)
+
+
+# logs/jbech-linaro/optee_client/1/
+@app.route('/logs/<owner>/<project>/<int:pr_number>')
+def show_unique_pr(owner, project, pr_number):
+    pr_full_name = "{}/{}".format(owner, project)
+    sql_data = db.get_unique_pr(pr_full_name, pr_number)
+    return render_template('unique_pr.html', sd=sql_data)
+
+
+# logs/jbech-linaro/optee_os/2/149713049/2bcfbd494fd4ce795840697a4d10cdb26f39d6aa
+@app.route('/logs/<owner>/<project>/<int:pr_number>/<int:pr_id>/<pr_sha1>')
+def show_log(owner, project, pr_number, pr_id, pr_sha1):
+    pr_full_name = "{}/{}".format(owner, project)
+    logs = worker.get_logs(pr_full_name, pr_number, pr_id, pr_sha1)
+    sql_data = db.get_job_info(pr_id, pr_sha1)
+    payload = db.get_payload_from_pr_id(pr_id, pr_sha1)
+    commiter_branch = github.pr_branch(payload)
+    return render_template('job.html', sd=sql_data, logs=logs,
+                           commiter_branch=commiter_branch)
 
 
 @app.route('/payload', methods=['POST'])
