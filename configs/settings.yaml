@@ -17,13 +17,16 @@ workspace:
 
 log:
         dir: logs
+        # Note that export IBART_LOG has precedence over this
         file: logs/core.log
 
 db:
+        # Note that export IBART_DB_FILE has precedence over this
         file: database/ibart.db
 
 # The jobs that this server will run
 jobs:
-        path: jobdefs/examples
+        # Note that export IBART_JOBDEFS has precedence over this
+        path: jobdefs
         remotedefs:
                 - http://foo.bar/john_doe.yaml

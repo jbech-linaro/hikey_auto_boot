@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-import signal
 import logging as log
+import signal
+import sys
 import time
 
 ###############################################################################

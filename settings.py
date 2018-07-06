@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import logging as log
 import yaml
+import os
 
 
 def get_settings_yml_file():
@@ -23,6 +24,7 @@ def config_path():
     try:
         return yml_file['config']['path']
     except KeyError:
+        log.error("No config path in settings file")
         return "Missing key!"
 
 
@@ -31,6 +33,7 @@ def repo_bin():
     try:
         return yml_file['repo']['bin']
     except KeyError:
+        log.error("No repo bin in settings file")
         return "Missing key!"
 
 
@@ -39,6 +42,7 @@ def repo_reference():
     try:
         return yml_file['repo']['reference']
     except KeyError:
+        log.error("No repo reference in settings file")
         return "Missing key!"
 
 
@@ -47,6 +51,7 @@ def aarch32_toolchain_path():
     try:
         return yml_file['toolchain']['aarch32_path']
     except KeyError:
+        log.error("No aarch32 toolchain in settings file")
         return "Missing key!"
 
 
@@ -55,6 +60,7 @@ def aarch64_toolchain_path():
     try:
         return yml_file['toolchain']['aarch64_path']
     except KeyError:
+        log.error("No aarch64 toolchain in settings file")
         return "Missing key!"
 
 
@@ -63,6 +69,7 @@ def aarch32_prefix():
     try:
         return yml_file['toolchain']['aarch32_prefix']
     except KeyError:
+        log.error("No aarch32 prefix in settings file")
         return "Missing key!"
 
 
@@ -71,6 +78,7 @@ def aarch64_prefix():
     try:
         return yml_file['toolchain']['aarch64_prefix']
     except KeyError:
+        log.error("No aarch64 prefix in settings file")
         return "Missing key!"
 
 
@@ -79,6 +87,7 @@ def workspace_path():
     try:
         return yml_file['workspace']['path']
     except KeyError:
+        log.error("No workspace path in settings file")
         return "Missing key!"
 
 
@@ -87,43 +96,53 @@ def log_dir():
     try:
         return yml_file['log']['dir']
     except KeyError:
+        log.error("No log dir in settings file")
         return "Missing key!"
 
 
 def log_file():
+    try:
+        if os.environ['IBART_LOG']:
+            return os.environ['IBART_LOG']
+    except KeyError:
+        pass
+
     yml_file = get_settings_yml_file()
     try:
         return yml_file['log']['file']
     except KeyError:
+        log.error("No log file specified in settings file or env")
         return "Missing key!"
 
 
 def db_file():
+    try:
+        if os.environ['IBART_DB_FILE']:
+            return os.environ['IBART_DB_FILE']
+    except KeyError:
+        pass
+
     yml_file = get_settings_yml_file()
     try:
         return yml_file['db']['file']
     except KeyError:
+        log.error("No db file specified in settings file or env")
         return "Missing key!"
 
 
 def jobdefs_path():
+    try:
+        if os.environ['IBART_JOBDEFS']:
+            return os.environ['IBART_JOBDEFS']
+    except KeyError:
+        pass
+
     yml_file = get_settings_yml_file()
     try:
         return yml_file['jobs']['path']
     except KeyError:
+        log.error("No jobdefs folder specified in settings file or env")
         return "Missing key!"
-
-
-def local_jobs():
-    yml_file = get_settings_yml_file()
-    my_jobs = []
-    try:
-        yml_iter = yml_file['jobs']['localdefs']
-        for i in yml_iter:
-            my_jobs.append("{}".format(i))
-    except KeyError:
-        return "Missing key!"
-    return my_jobs
 
 
 def remote_jobs():
@@ -134,6 +153,7 @@ def remote_jobs():
         for i in yml_iter:
             my_jobs.append("{}".format(i))
     except KeyError:
+        log.error("No remote jobdefs in settings file")
         return "Missing key!"
     return my_jobs
 
@@ -164,7 +184,6 @@ def initialize():
     log.debug("log_file: {}".format(log_file()))
     log.debug("db_file: {}".format(db_file()))
     log.debug("config_path: {}".format(config_path()))
-    log.debug("local_jobs: {}".format(local_jobs()))
     log.debug("remote_jobs: {}".format(remote_jobs()))
 
 

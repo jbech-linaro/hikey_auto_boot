@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import glob
 import logging as log
+import os
 import re
 import zipfile
 
@@ -8,6 +9,7 @@ from collections import OrderedDict
 from pathlib import Path
 
 # Local modules
+import github
 import settings
 
 PRE_CLONE = 0
