@@ -2,8 +2,12 @@
 import logging as log
 import json
 import os
-import settings
 import sqlite3
+
+# Local imports
+import github
+import settings
+
 
 DB_RUN_FILE = os.path.join(os.path.dirname(__file__), settings.db_file())
 

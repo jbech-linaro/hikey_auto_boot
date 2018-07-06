@@ -78,9 +78,13 @@ There are a few of the pull request variables automatically exported to the
 | Variable         | Meaning                                              | Example                               |
 +------------------+------------------------------------------------------+---------------------------------------+
 | ``PR_NUMBER``    | The current pull request number                      | 123                                   |
++------------------+------------------------------------------------------+---------------------------------------+
 | ``PR_NAME``      | The name git corresponding to the current pr number  | ibart                                 |
++------------------+------------------------------------------------------+---------------------------------------+
 | ``PR_FULL_NAME`` | Both the GitHub project name and the name of the git | jbech-linaro/ibart                    |
++------------------+------------------------------------------------------+---------------------------------------+
 | ``PR_CLONE_URL`` | URL to the submitters git/tree                       | https://github.com/jbech-linaro/ibart |
++------------------+------------------------------------------------------+---------------------------------------+
 | ``PR_BRANCH``    | URL to the submitters branch                         | my_super_branch_with_fixes            |
 +------------------+------------------------------------------------------+---------------------------------------+
 

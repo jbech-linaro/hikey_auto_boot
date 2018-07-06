@@ -352,7 +352,7 @@ class WorkerThread(threading.Thread):
 
             pr_id_sha1 = "{}-{}".format(pr_id, pr_sha1)
             self.q.append(pr_id_sha1)
-            new_job = Job(payload, False)
+            new_job = job.Job(payload, False)
             self.job_dict[pr_id_sha1] = new_job
             db.add_build_record(new_job.payload)
             db.update_job(pr_id, pr_sha1, status.d[status.PENDING], "N/A")
