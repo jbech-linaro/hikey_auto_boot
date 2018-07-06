@@ -49,6 +49,7 @@ Starting IBART
 Starting IBART is as simple as:
 
 .. code-block:: bash
+
     $ ./ibart.py
 
 If everything done correctly, IBART should now be listening for build requests as well as serve HTML queries at ``http://${IBART_URL}``
