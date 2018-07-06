@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 import signal
-# -*- coding: utf-8 -*-
 import logging as log
 import time
 
 ###############################################################################
 # Sigint
 ###############################################################################
+
 
 def signal_handler(signal, frame):
     log.debug("Gracefully killed!")
@@ -18,6 +18,7 @@ signal.signal(signal.SIGINT, signal_handler)
 ###############################################################################
 # Time
 ###############################################################################
+
 
 def get_running_time(time_start):
     """Returns the running time on format: <hours>h:<minutes>m:<seconds>s."""

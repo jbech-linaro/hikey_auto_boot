@@ -4,20 +4,18 @@ import json
 import logging as log
 import os
 import pexpect
-import re
 import sys
 import threading
 import time
 import yaml
-import zipfile
 
-from collections import OrderedDict
 from pathlib import Path
 
 # Local modules
 import db
 import github
 import job
+import logger as ibl  # Do not confuse this with the logging above
 import settings
 import status
 import utils
@@ -157,166 +155,9 @@ def spawn_pexpect_child(job):
 def terminate_child(child):
     child.close()
 
-###############################################################################
-# SQLITE3
-###############################################################################
-
-
-LOG_PRE_CLONE = 0
-LOG_CLONE = 1
-LOG_POST_CLONE = 2
-LOG_PRE_BUILD = 3
-LOG_BUILD = 4
-LOG_POST_BUILD = 5
-LOG_PRE_FLASH = 6
-LOG_FLASH = 7
-LOG_POST_FLASH = 8
-LOG_PRE_BOOT = 9
-LOG_BOOT = 10
-LOG_POST_BOOT = 11
-LOG_PRE_TEST = 12
-LOG_TEST = 13
-LOG_POST_TEST = 14
-
-d_logstr = {
-        LOG_PRE_CLONE: "pre_clone",
-        LOG_CLONE: "clone",
-        LOG_POST_CLONE: "post_clone",
-
-        LOG_PRE_BUILD: "pre_build",
-        LOG_BUILD: "build",
-        LOG_POST_BUILD: "post_build",
-
-        LOG_PRE_FLASH: "pre_flash",
-        LOG_FLASH: "flash",
-        LOG_POST_FLASH: "post_flash",
-
-        LOG_PRE_BOOT: "pre_boot",
-        LOG_BOOT: "boot",
-        LOG_POST_BOOT: "post_boot",
-
-        LOG_PRE_TEST: "pre_test",
-        LOG_TEST: "test",
-        LOG_POST_TEST: "post_test"
-        }
-
-# -----------------------------------------------------------------------------
-# Log handling
-# -----------------------------------------------------------------------------
-
-
-def get_logs(pr_full_name, pr_number, pr_id, pr_sha1):
-    """The function returns a dictionary with dictionaries where the high level
-       dictionary have 'key' corresponding job definition and the inner
-       dictionaries corresponds to each individual log files."""
-    if (pr_full_name is None or pr_number is None or pr_id is None or
-            pr_sha1 is None):
-        log.error("Cannot store log file (missing parameters)")
-        return
-
-    log_file_dir = "{p}/{fn}/{n}/{i}/{s}".format(
-            p=settings.log_dir(), fn=pr_full_name, n=pr_number, i=pr_id,
-            s=pr_sha1)
-
-    log.debug("Getting logs from folder: {}".format(log_file_dir))
-
-    all_logs = OrderedDict()
-    for zf in sorted(glob.glob("{}/*.zip".format(log_file_dir))):
-        logs = OrderedDict()
-        log.debug("Unpacking zip-file: {}".format(zf))
-        for key, logtype in d_logstr.items():
-            filename = "{}.log".format(logtype)
-            logs[logtype] = read_log(filename, zf)
-        # Use job definition as key when return log from multi definition
-        # jobs.
-        jd = Path(zf).name.replace(".zip", "")
-        all_logs[jd] = logs
-    return all_logs
-
-
-def read_log(filename, zip_file):
-    """This function extracts a single log file from a certain zip-file."""
-    if filename is None or zip_file is None:
-        log.error("Cannot read log file (missing parameters)")
-        return
-
-    log_line = ""
-    try:
-        ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
-        # TODO: Get rid of "logs/"
-        filename = "logs/{}".format(filename)
-        with zipfile.ZipFile(zip_file) as myzip:
-            with myzip.open(filename) as myfile:
-                log_line = ansi_escape.sub('', myfile.read().decode('utf-8'))
-    except (IOError, KeyError) as e:
-        pass
-
-    # Add line numbers to the log
-    ctr = 1
-    numbered_log = []
-    for l in log_line.split('\n'):
-        numbered_log.append("{:>6}:  {}".format(ctr, l))
-        ctr += 1
-
-    # If there is no content in the log, then don't return anything
-    if len(numbered_log) == 1 and len(numbered_log[0]) == 9:
-        return None
-
-    return "\n".join(numbered_log)
-
-
-def clear_logfiles(payload):
-    if payload is None:
-        log.error("Cannot clear log file (missing parameters)")
-        return
-
-    pr_full_name = github.pr_full_name(payload)
-    pr_number = github.pr_number(payload)
-    pr_id = github.pr_id(payload)
-    pr_sha1 = github.pr_sha1(payload)
-
-    log_file_dir = "{p}/{fn}/{n}/{i}/{s}".format(
-            p=settings.log_dir(), fn=pr_full_name, n=pr_number, i=pr_id,
-            s=pr_sha1)
-
-    for zf in glob.glob("{}/*.zip".format(log_file_dir)):
-        if os.path.isfile(zf):
-            os.remove(zf)
-
-
-def store_logfile(payload, current_file, full_log_file):
-    if (payload is None or current_file is None or full_log_file is None):
-        log.error("Cannot store log file (missing parameters)")
-        return
-
-    pr_full_name = github.pr_full_name(payload)
-    pr_number = github.pr_number(payload)
-    pr_id = github.pr_id(payload)
-    pr_sha1 = github.pr_sha1(payload)
-
-    log_file_dir = "{p}/{fn}/{n}/{i}/{s}".format(
-            p=settings.log_dir(), fn=pr_full_name, n=pr_number, i=pr_id,
-            s=pr_sha1)
-
-    try:
-        os.stat(log_file_dir)
-    except FileNotFoundError:
-        os.makedirs(log_file_dir)
-
-    source = current_file
-    dest = "{d}/{f}".format(d=log_file_dir, f=full_log_file)
-
-    try:
-        zipfile.ZipFile(dest, mode='a',
-                        compression=zipfile.ZIP_DEFLATED).write(source)
-    except FileNotFoundError:
-        log.error("Couldn't find file {}".format(dest))
-
-
 
 def get_job_definitions():
     return sorted([jd for jd in glob.glob("jobdefs/*.yaml")])
-
 
 
 class JobThread(threading.Thread):
@@ -336,8 +177,6 @@ regularly for the stopped() condition."""
         return self._stop_event.is_set()
 
     def start_job(self):
-        global d_logstr
-
         jobdefs = get_job_definitions()
 
         # Just local to save some typing further down
@@ -345,7 +184,7 @@ regularly for the stopped() condition."""
 
         # To prevent old logs from showing up on the web-page, start by
         # removing all of them.
-        clear_logfiles(payload)
+        ibl.clear_logfiles(payload)
 
         for jd in jobdefs:
             log.info("Start clone, build ... sequence for {}".format(self.job))
@@ -359,7 +198,7 @@ regularly for the stopped() condition."""
                 yml_config = yaml.load(yml)
 
             # Loop all defined values
-            for k, logtype in d_logstr.items():
+            for k, logtype in ibl.log2str.items():
                 try:
                     yml_iter = yml_config[logtype]
                 except KeyError:
@@ -372,7 +211,8 @@ regularly for the stopped() condition."""
                     child.logfile_read = f
 
                     if yml_iter is None:
-                        store_logfile(payload, current_log_file, full_log_file)
+                        ibl.store_logfile(payload, current_log_file,
+                                          full_log_file)
                         continue
 
                     for i in yml_iter:
@@ -382,8 +222,8 @@ regularly for the stopped() condition."""
                         if not do_pexpect(child, c, e, cr, to):
                             terminate_child(child)
                             log.error("job type: {} failed!".format(logtype))
-                            store_logfile(payload, current_log_file,
-                                          full_log_file)
+                            ibl.store_logfile(payload, current_log_file,
+                                              full_log_file)
                             github.update_state(payload, "failure", "Stage {} "
                                                 "failed!".format(logtype))
                             return status.FAIL
@@ -392,15 +232,15 @@ regularly for the stopped() condition."""
                             terminate_child(child)
                             log.debug("job type: {} cancelled!".format(
                                       logtype))
-                            store_logfile(payload, current_log_file,
-                                          full_log_file)
+                            ibl.store_logfile(payload, current_log_file,
+                                              full_log_file)
                             github.update_state(payload, "failure", "Job was "
                                                 "stopped by user (stage {})!"
                                                 "".format(logtype))
                             return status.CANCEL
 
                     terminate_child(child)
-                store_logfile(payload, current_log_file, full_log_file)
+                ibl.store_logfile(payload, current_log_file, full_log_file)
 
         github.update_state(payload, "success", "All good!")
         return status.SUCCESS
@@ -629,4 +469,3 @@ def cancel(pr_id, pr_sha1):
         log.error("Threads are not initialized")
     else:
         worker_thread.cancel(pr_id, pr_sha1)
-

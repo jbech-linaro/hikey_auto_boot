@@ -172,5 +172,3 @@ def get_job_info(pr_id, pr_sha1):
     con.commit()
     con.close()
     return r[0]
-
-

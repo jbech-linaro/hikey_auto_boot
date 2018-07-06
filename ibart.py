@@ -10,6 +10,7 @@ import sys
 # Local imports
 import db
 import github
+import logger as ibl
 import worker
 
 app = Flask(__name__)
@@ -95,7 +96,7 @@ def show_unique_pr(owner, project, pr_number):
 @app.route('/logs/<owner>/<project>/<int:pr_number>/<int:pr_id>/<pr_sha1>')
 def show_log(owner, project, pr_number, pr_id, pr_sha1):
     pr_full_name = "{}/{}".format(owner, project)
-    logs = worker.get_logs(pr_full_name, pr_number, pr_id, pr_sha1)
+    logs = ibl.get_logs(pr_full_name, pr_number, pr_id, pr_sha1)
     sql_data = db.get_job_info(pr_id, pr_sha1)
     payload = db.get_payload_from_pr_id(pr_id, pr_sha1)
     commiter_branch = github.pr_branch(payload)
