@@ -92,6 +92,12 @@ def workspace_path():
 
 
 def log_dir():
+    try:
+        if os.environ['IBART_LOG_DIR']:
+            return os.environ['IBART_LOG_DIR']
+    except KeyError:
+        pass
+
     yml_file = get_settings_yml_file()
     try:
         return yml_file['log']['dir']
@@ -102,8 +108,8 @@ def log_dir():
 
 def log_file():
     try:
-        if os.environ['IBART_LOG']:
-            return os.environ['IBART_LOG']
+        if os.environ['IBART_CORE_LOG']:
+            return os.environ['IBART_CORE_LOG']
     except KeyError:
         pass
 

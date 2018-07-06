@@ -2,7 +2,7 @@ Job definitions - Yaml-files
 ============================
 This is the main thing a user will work with. This is where all commands to clone, build, flash etc takes place. There are ``15`` pre-defined sections and at this moment they are the only ones that can be there. You don't have to add nor use all of them. But you cannot add more or invent your own. A full file contains the following:
 
-.. code:: yaml
+.. code-block:: yaml
 
     pre_clone:
     clone:
@@ -45,7 +45,7 @@ Within each section one states commands, expected output and the timeout. Timeou
           
 This simple test would create a working directory, clone Linux kernel with a 600 second timeout, build it for Arm (again 600 seconds timeout). Note that one can use both this 
 
-.. code:: yaml
+.. code-block:: yaml
     :emphasize-lines: 3
     build:
         - cmd: echo $?
@@ -53,7 +53,7 @@ This simple test would create a working directory, clone Linux kernel with a 600
 
 as well as this syntax (pay attention to the added ``-`` at ``exp``. 
 
-.. code:: yaml
+.. code-block:: yaml
 
     build:
         - cmd: echo $?
@@ -66,6 +66,24 @@ Exported variables
 Under the hood IBART uses `pexpect`_ and for each section the job-definition file (yaml) it will spawn a new shell. This means that things are not normally carried over between sections in the job-definition file. But since it is both cumbersome and easy to forget export the same things over and over again, IBART saves every export it sees and when entering a new section it will export the same environment variables again. So, from a user perspective exports will work as expected.
 
 .. _pexpect: http://pexpect.readthedocs.io/en/stable/index.html
+
+Pull request variables
+~~~~~~~~~~~~~~~~~~~~~~
+There are a few of the pull request variables automatically exported to the
+"environment" which can be used directly in the script, they are:
+
+.. code-block:: bash
+
++------------------+------------------------------------------------------+---------------------------------------+
+| Variable         | Meaning                                              | Example                               |
++------------------+------------------------------------------------------+---------------------------------------+
+| ``PR_NUMBER``    | The current pull request number                      | 123                                   |
+| ``PR_NAME``      | The name git corresponding to the current pr number  | ibart                                 |
+| ``PR_FULL_NAME`` | Both the GitHub project name and the name of the git | jbech-linaro/ibart                    |
+| ``PR_CLONE_URL`` | URL to the submitters git/tree                       | https://github.com/jbech-linaro/ibart |
+| ``PR_BRANCH``    | URL to the submitters branch                         | my_super_branch_with_fixes            |
++------------------+------------------------------------------------------+---------------------------------------+
+
 
 Directory changes
 -----------------

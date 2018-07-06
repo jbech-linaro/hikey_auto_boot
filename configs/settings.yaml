@@ -1,23 +1,27 @@
-# Only use absolute and relative paths, since $ENV are not supported right now
+# TODO: config currently not used by IBART.
 config:
         path: configs
 
+# TODO: repo currently not used by IBART.
 repo:
         bin: /home/optee/bin/repo
         reference: /home/optee/devel/reference
 
+# TODO: toolchain currently not used by IBART.
 toolchain:
         aarch32_path: /media/jbech/SSHD_LINUX/devel/optee_projects/reference/toolchains/aarch32/bin
         aarch64_path: /media/jbech/SSHD_LINUX/devel/optee_projects/reference/toolchains/aarch64/bin
         aarch32_prefix: arm-linux-gnueabihf-
         aarch64_prefix: aarch64-linux-gnu-
 
+# TODO: workspace currently not used by IBART.
 workspace:
         path: /tmp/workspace
 
 log:
+        # Note that export IBART_LOG_DIR has precedence over this
         dir: logs
-        # Note that export IBART_LOG has precedence over this
+        # Note that export IBART_CORE_LOG has precedence over this
         file: logs/core.log
 
 db:
