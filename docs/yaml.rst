@@ -46,6 +46,7 @@ Within each section one states commands, expected output and the timeout. Timeou
 This simple test would create a working directory, clone Linux kernel with a 600 second timeout, build it for Arm (again 600 seconds timeout). Note that one can use both this 
 
 .. code-block:: yaml
+
     :emphasize-lines: 3
     build:
         - cmd: echo $?
